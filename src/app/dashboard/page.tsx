@@ -8,7 +8,7 @@ import {
   AVAILABLE_VOICES,
   BGM_TYPES,
 } from '@/lib/mpt-service';
-import { signInWithGoogle, signOutUser, onAuthStateChanged, type User } from '@/lib/firebase';
+import { signInWithGoogle, signOutUser, onAuthStateChanged, auth, type User } from '@/lib/firebase';
 
 const NICHES = ['Finance', 'Fitness', 'Tech', 'Crypto', 'Motivation', 'Lifestyle', 'Business', 'Health'];
 const ASPECTS = [
@@ -91,9 +91,9 @@ export default function DashboardPage() {
           setUser(u);
           setAuthLoading(false);
         },
-        (error) => {
-          console.error('[Firebase Auth]', error.code, error.message);
-          window.__authError = error;
+        (error: Error & { code?: string }) => {
+          console.error('[Firebase Auth]', (error as any).code, error.message);
+          (window as any).__authError = error;
           setAuthLoading(false);
         }
       );
