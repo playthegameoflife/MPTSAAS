@@ -1,6 +1,6 @@
 // MoneyPrinterTurbo API client
 
-const MPT_BASE_URL = process.env.MPT_BASE_URL || 'http://127.0.0.1:8080';
+const MPT_BASE_URL = process.env.MPT_BASE_URL || 'http://127.0.0.1:8080/api/v1';
 
 export interface VideoParams {
   video_subject: string;
@@ -15,6 +15,9 @@ export interface VideoParams {
   video_count?: number;
   video_language?: string;
 }
+
+// Default voice — must be passed on every API call or MPT defaults to empty and fails
+export const DEFAULT_VOICE = 'gemini:Zephyr';
 
 export interface VideoTask {
   task_id: string;

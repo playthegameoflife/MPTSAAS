@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createVideo, getTask, type VideoParams } from '@/lib/mpt';
+import { createVideo, getTask, DEFAULT_VOICE, type VideoParams } from '@/lib/mpt';
 
 const NICHES = ['Finance', 'Fitness', 'Tech', 'Crypto', 'Motivation', 'Lifestyle', 'Business', 'Health'];
 const ASPECTS = [
@@ -37,6 +37,7 @@ export default function DashboardPage() {
       text_fore_color: '#FFFFFF',
       stroke_color: '#000000',
       video_count: 1,
+      voice_name: DEFAULT_VOICE,
     };
 
     try {
