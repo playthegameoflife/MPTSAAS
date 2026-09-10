@@ -59,17 +59,13 @@ export interface VideoTask {
   error?: string;
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // Internal config — endpoint comes from env, never hardcoded
-// ---------------------------------------------------------------------------
+// NOTE: read at call time (runtime), not module-load time (build).
+// -----------------------------------------------------------------------
 
-const MPT_BASE_URL = process.env.MPT_BASE_URL;
-
-/**
- * Throws if MPT is not configured — fails fast so the SaaS layer
- * never accidentally calls a placeholder URL in production.
- */
 function getBaseUrl(): string {
+  const MPT_BASE_URL = process.env.MPT_BASE_URL;
   if (!MPT_BASE_URL) {
     throw new Error(
       '[MPT Service] MPT_BASE_URL is not set. ' +
