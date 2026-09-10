@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   submitVideoJob,
   getVideoTask,
@@ -8,15 +8,58 @@ import {
   AVAILABLE_VOICES,
   BGM_TYPES,
 } from '@/lib/mpt-service';
+import { signInWithGoogle, signOutUser, onAuthChange, type User } from '@/lib/firebase';
 
 const NICHES = ['Finance', 'Fitness', 'Tech', 'Crypto', 'Motivation', 'Lifestyle', 'Business', 'Health'];
 const ASPECTS = [
   { label: '9:16 TikTok/Reels', value: '9:16' },
   { label: '16:9 YouTube', value: '16:9' },
-  { label: '1:1 Square', value: '1:1' },
+  { label: '1:1 Square', value: '1:1' as const },
 ];
 
+// Auth gate — shown when user is not signed in
+function AuthGate({ onSignIn }: { onSignIn: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-10 max-w-md w-full mx-4 text-center">
+        <div className="text-3xl mb-4">🎬</div>
+        <h2 className="text-2xl font-bold text-white mb-2">Sign in to create videos</h2>
+        <p className="text-slate-400 mb-8">
+          Free 3 videos per month. No credit card required.
+        </p>
+        <button
+          onClick={onSignIn}
+          className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Continue with Google
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Loading spinner
+function Spinner() {
+  return (
+    <div className="flex items-center gap-2 text-slate-400 text-sm">
+      <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"/>
+      </svg>
+      Signing in...
+    </div>
+  );
+}
+
 export default function DashboardPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [topic, setTopic] = useState('');
   const [niche, setNiche] = useState('Tech');
   const [aspect, setAspect] = useState<'9:16' | '16:9' | '1:1'>('9:16');
@@ -34,6 +77,31 @@ export default function DashboardPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Firebase auth listener
+  useEffect(() => {
+    const unsubscribe = onAuthChange((u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  async function handleSignIn() {
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      console.error('Sign in failed:', err);
+    }
+  }
+
+  async function handleSignOut() {
+    await signOutUser();
+    setVideoUrl(null);
+    setTaskId(null);
+    setStatus(null);
+    setError(null);
+  }
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
@@ -91,6 +159,20 @@ export default function DashboardPage() {
     poll();
   }
 
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <Spinner />
+      </div>
+    );
+  }
+
+  // Show auth gate if not signed in
+  if (!user) {
+    return <AuthGate onSignIn={handleSignIn} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       {/* Header */}
@@ -99,9 +181,20 @@ export default function DashboardPage() {
           <span className="text-emerald-400">Faceless</span>Video.ai
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-slate-400">3/3 free videos left</span>
-          <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm transition">
-            Upgrade to Pro
+          {user.photoURL && (
+            <img
+              src={user.photoURL}
+              alt={user.displayName ?? 'User'}
+              className="w-8 h-8 rounded-full"
+            />
+          )}
+          <span className="text-sm text-slate-400 hidden sm:block">{user.email}</span>
+          <span className="text-sm text-emerald-400 font-medium">3/3 free videos</span>
+          <button
+            onClick={handleSignOut}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm transition"
+          >
+            Sign out
           </button>
         </div>
       </header>
@@ -156,7 +249,7 @@ export default function DashboardPage() {
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setAspect(value)}
+                  onClick={() => setAspect(value as '9:16' | '16:9' | '1:1')}
                   className={`flex-1 py-3 rounded-xl text-sm font-medium border transition ${
                     aspect === value
                       ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
@@ -189,8 +282,7 @@ export default function DashboardPage() {
                 <select
                   value={voice}
                   onChange={(e) => setVoice(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 transition"
-                  disabled={loading}
+                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-emerald-500"
                 >
                   {AVAILABLE_VOICES.map((v) => (
                     <option key={v.id} value={v.id}>{v.label}</option>
@@ -201,83 +293,51 @@ export default function DashboardPage() {
               {/* BGM */}
               <div>
                 <label className="block text-sm font-medium mb-2">Background music</label>
-                <div className="flex flex-wrap gap-2">
-                  {BGM_TYPES.map((b) => (
-                    <button
-                      key={b.id}
-                      type="button"
-                      onClick={() => setBgmType(b.id)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                        bgmType === b.id
-                          ? 'bg-emerald-500 text-slate-950'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                      disabled={loading}
-                    >
-                      {b.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Subtitles */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium">Captions / Subtitles</div>
-                  <div className="text-xs text-slate-400">Burned into the video</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSubtitleEnabled(!subtitleEnabled)}
-                  className={`w-12 h-7 rounded-full transition ${
-                    subtitleEnabled ? 'bg-emerald-500' : 'bg-slate-700'
-                  }`}
-                  disabled={loading}
+                <select
+                  value={bgmType}
+                  onChange={(e) => setBgmType(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-emerald-500"
                 >
-                  <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                    subtitleEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`} />
-                </button>
+                  {BGM_TYPES.map((b) => (
+                    <option key={b.id} value={b.id}>{b.label}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Font size */}
-              {subtitleEnabled && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Caption size — {fontSize}px
-                  </label>
-                  <input
-                    type="range"
-                    min={24}
-                    max={120}
-                    step={4}
-                    value={fontSize}
-                    onChange={(e) => setFontSize(Number(e.target.value))}
-                    className="w-full accent-emerald-500"
-                    disabled={loading}
-                  />
-                  <div className="flex justify-between text-xs text-slate-500 mt-1">
-                    <span>Small</span>
-                    <span>Large</span>
-                  </div>
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium mb-2">Subtitle size: {fontSize}px</label>
+                <input
+                  type="range"
+                  min={40}
+                  max={80}
+                  value={fontSize}
+                  onChange={(e) => setFontSize(Number(e.target.value))}
+                  className="w-full accent-emerald-500"
+                />
+              </div>
+
+              {/* Subtitles toggle */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="subtitles"
+                  checked={subtitleEnabled}
+                  onChange={(e) => setSubtitleEnabled(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-500"
+                />
+                <label htmlFor="subtitles" className="text-sm">Burn in subtitles</label>
+              </div>
             </div>
           )}
 
-          {/* Submit */}
+          {/* Generate button */}
           <button
             type="submit"
             disabled={loading || !topic.trim()}
-            className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400 text-slate-950 font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20 disabled:shadow-none"
+            className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-500 text-slate-950 font-bold text-lg rounded-xl transition"
           >
-            {loading
-              ? status === 'queued'
-                ? '📋 Queued...'
-                : status === 'processing'
-                ? '🎬 Generating...'
-                : '⏳ Starting...'
-              : '🎬 Generate video'}
+            {loading ? 'Generating...' : 'Generate Video'}
           </button>
         </form>
 
@@ -290,69 +350,37 @@ export default function DashboardPage() {
 
         {/* Status */}
         {status && !videoUrl && !error && (
-          <div className="mt-6 p-6 bg-slate-900 border border-slate-800 rounded-xl text-center">
-            <div className="text-4xl mb-3">
-              {status === 'queued' ? '📋' : status === 'processing' ? '🎬' : '⏳'}
+          <div className="mt-6 p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-slate-300">
+                {status === 'queued' && 'Queued — generation starts shortly...'}
+                {status === 'processing' && 'Generating your video...'}
+              </span>
             </div>
-            <div className="font-medium mb-1">
-              {status === 'queued' ? 'Queued for generation' : 'Generating your video...'}
-            </div>
-            <div className="text-slate-400 text-sm">
-              This takes 30–90 seconds. You can leave this page — the video will be ready when you return.
-            </div>
+            {taskId && (
+              <p className="text-xs text-slate-500 mt-2">Task ID: {taskId}</p>
+            )}
           </div>
         )}
 
         {/* Video output */}
         {videoUrl && (
-          <div className="mt-6 space-y-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-              <video
-                src={videoUrl}
-                controls
-                className="w-full"
-              />
-            </div>
-            <div className="flex gap-3">
-              <a
-                href={videoUrl}
-                download
-                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-center rounded-xl font-medium transition"
-              >
-                ⬇ Download MP4
-              </a>
-              <button className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold rounded-xl transition-all">
-                📱 Post to all platforms
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* History — placeholder, will wire to Supabase */}
-        {videoUrl && (
-          <div className="mt-10">
-            <h2 className="text-lg font-semibold mb-4">Recent videos</h2>
-            <div className="space-y-3">
-              <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
-                <div className="w-24 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-slate-500 text-xs">
-                  Thumb
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{topic}</div>
-                  <div className="text-slate-400 text-sm">
-                    {niche} · {aspect} · Just now
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="px-3 py-1.5 bg-slate-800 rounded-lg text-xs hover:bg-slate-700">
-                    Repost
-                  </button>
-                  <button className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-xs hover:bg-red-500/30">
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
+          <div className="mt-8 p-6 bg-slate-900 border border-emerald-500/30 rounded-xl">
+            <h3 className="text-lg font-semibold mb-4 text-emerald-400">Your video is ready!</h3>
+            <video
+              src={videoUrl}
+              controls
+              className="w-full rounded-lg"
+              style={{ maxHeight: '500px' }}
+            />
+            <a
+              href={videoUrl}
+              download
+              className="mt-4 inline-block px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold rounded-xl transition"
+            >
+              Download Video
+            </a>
           </div>
         )}
       </div>
