@@ -8,7 +8,7 @@ import {
   AVAILABLE_VOICES,
   BGM_TYPES,
 } from '@/lib/mpt-service';
-import { signInWithGoogle, signOutUser, onAuthChange, type User } from '@/lib/firebase';
+import { signInWithGoogle, signOutUser, onAuthStateChanged, type User } from '@/lib/firebase';
 
 const NICHES = ['Finance', 'Fitness', 'Tech', 'Crypto', 'Motivation', 'Lifestyle', 'Business', 'Health'];
 const ASPECTS = [
@@ -78,13 +78,29 @@ export default function DashboardPage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Firebase auth listener
+  // Firebase auth listener — onAuthStateChanged(auth, observer, error, completed)
   useEffect(() => {
-    const unsubscribe = onAuthChange((u) => {
-      setUser(u);
+    let unsubscribe: (() => void) | null = null;
+    try {
+      unsubscribe = onAuthStateChanged(
+        auth,
+        (u) => {
+          setUser(u);
+          setAuthLoading(false);
+        },
+        (error) => {
+          console.error('[Firebase Auth]', error.code, error.message);
+          window.__authError = error;
+          setAuthLoading(false);
+        }
+      );
+    } catch (err) {
+      console.error('[Firebase Init]', err);
       setAuthLoading(false);
-    });
-    return unsubscribe;
+    }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   async function handleSignIn() {
