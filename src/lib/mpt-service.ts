@@ -65,12 +65,13 @@ export interface VideoTask {
 // -----------------------------------------------------------------------
 
 function getBaseUrl(): string {
-  const MPT_BASE_URL = process.env.MPT_BASE_URL;
+  // NOTE: NEXT_PUBLIC_ prefix makes this available in browser JavaScript
+  const MPT_BASE_URL = process.env.NEXT_PUBLIC_MPT_BASE_URL;
   if (!MPT_BASE_URL) {
     throw new Error(
-      '[MPT Service] MPT_BASE_URL is not set. ' +
+      '[MPT Service] NEXT_PUBLIC_MPT_BASE_URL is not set. ' +
       'MPT is a black-box external service. ' +
-      'Set MPT_BASE_URL in your .env to the MPT engine URL (e.g. https://mpt.yourdomain.com/api/v1).'
+      'Set NEXT_PUBLIC_MPT_BASE_URL in your .env to the MPT engine URL (e.g. https://mpt.yourdomain.com/api/v1).'
     );
   }
   return MPT_BASE_URL;
