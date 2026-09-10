@@ -23,14 +23,29 @@ export interface VideoParams {
   video_subject: string;
   video_script?: string;
   video_aspect?: '9:16' | '16:9' | '1:1';
+  video_language?: string;
   voice_name?: string;
+  voice_volume?: number;
+  voice_rate?: number;
   bgm_type?: string;
+  bgm_volume?: number;
   subtitle_enabled?: boolean;
+  subtitle_position?: string;
+  custom_position?: number;
+  font_name?: string;
   font_size?: number;
   text_fore_color?: string;
+  text_background_color?: boolean | string;
+  rounded_subtitle_background?: boolean;
   stroke_color?: string;
+  stroke_width?: number;
   video_count?: number;
-  video_language?: string;
+  video_clip_duration?: number;
+  video_clip_speed?: number;
+  video_concat_mode?: string;
+  video_transition_mode?: string;
+  custom_system_prompt?: string;
+  video_script_prompt?: string;
 }
 
 export interface VideoTask {

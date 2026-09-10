@@ -7,29 +7,75 @@ import {
   DEFAULT_VOICE,
   AVAILABLE_VOICES,
   BGM_TYPES,
+  type VideoParams,
 } from '@/lib/mpt-service';
 import { signInWithGoogle, signOutUser, onAuthStateChanged, auth, type User } from '@/lib/firebase';
 
+// ─── MPT Constants ──────────────────────────────────────────────────────────
+
 const NICHES = ['Finance', 'Fitness', 'Tech', 'Crypto', 'Motivation', 'Lifestyle', 'Business', 'Health'];
+
 const ASPECTS = [
   { label: '9:16 TikTok/Reels', value: '9:16' },
   { label: '16:9 YouTube', value: '16:9' },
-  { label: '1:1 Square', value: '1:1' as const },
+  { label: '1:1 Square', value: '1:1' },
 ];
 
-// Auth gate — shown when user is not signed in
+const LANGUAGES = [
+  { id: '', label: 'Auto-detect' },
+  { id: 'en', label: 'English' },
+  { id: 'zh', label: 'Chinese' },
+  { id: 'es', label: 'Spanish' },
+  { id: 'fr', label: 'French' },
+  { id: 'de', label: 'German' },
+  { id: 'ja', label: 'Japanese' },
+  { id: 'ko', label: 'Korean' },
+  { id: 'pt', label: 'Portuguese' },
+  { id: 'hi', label: 'Hindi' },
+];
+
+const CONCAT_MODES = [
+  { id: 'random', label: 'Random order' },
+  { id: 'sequential', label: 'Sequential' },
+];
+
+const TRANSITION_MODES = [
+  { id: '', label: 'None (cut)' },
+  { id: 'Shuffle', label: 'Shuffle' },
+  { id: 'FadeIn', label: 'Fade In' },
+  { id: 'FadeOut', label: 'Fade Out' },
+  { id: 'SlideIn', label: 'Slide In' },
+];
+
+const SUBTITLE_POSITIONS = [
+  { id: 'bottom', label: 'Bottom' },
+  { id: 'top', label: 'Top' },
+  { id: 'center', label: 'Center' },
+  { id: 'custom', label: 'Custom (%)' },
+];
+
+const FONT_OPTIONS = [
+  { id: 'STHeitiMedium.ttc', label: 'STHeiti Medium (bold)' },
+  { id: 'Helvetica', label: 'Helvetica' },
+  { id: 'Arial', label: 'Arial' },
+  { id: 'Times-Roman', label: 'Times Roman' },
+  { id: 'Georgia', label: 'Georgia' },
+  { id: 'Courier', label: 'Courier' },
+  { id: 'Impact', label: 'Impact' },
+];
+
+// ─── Auth Gate ────────────────────────────────────────────────────────────────
+
 function AuthGate({ onSignIn }: { onSignIn: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-10 max-w-md w-full mx-4 text-center">
-        <div className="text-3xl mb-4">🎬</div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/90 backdrop-blur-sm">
+      <div className="bg-[#1E293B] border border-white/10 rounded-2xl p-10 max-w-md w-full mx-4 text-center">
+        <div className="text-4xl mb-4">🎬</div>
         <h2 className="text-2xl font-bold text-white mb-2">Sign in to create videos</h2>
-        <p className="text-slate-400 mb-8">
-          Free 3 videos per month. No credit card required.
-        </p>
+        <p className="text-white/50 mb-8">Free 3 videos per month. No credit card required.</p>
         <button
           onClick={onSignIn}
-          className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition"
+          className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors duration-200 cursor-pointer"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -44,118 +90,133 @@ function AuthGate({ onSignIn }: { onSignIn: () => void }) {
   );
 }
 
-// Loading spinner
-function Spinner() {
+function Spinner({ message = 'Loading...' }: { message?: string }) {
   return (
-    <div className="flex items-center gap-2 text-slate-400 text-sm">
+    <div className="flex items-center gap-2 text-white/50 text-sm">
       <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"/>
       </svg>
-      Signing in...
+      {message}
     </div>
   );
 }
 
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
+
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState(false);
+
+  // Core params
   const [topic, setTopic] = useState('');
+  const [customScript, setCustomScript] = useState('');
   const [niche, setNiche] = useState('Tech');
   const [aspect, setAspect] = useState<'9:16' | '16:9' | '1:1'>('9:16');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [videoLanguage, setVideoLanguage] = useState('');
 
-  // Advanced options
+  // Voice params
   const [voice, setVoice] = useState(DEFAULT_VOICE);
-  const [bgmType, setBgmType] = useState('cinematic');
-  const [subtitleEnabled, setSubtitleEnabled] = useState(true);
-  const [fontSize, setFontSize] = useState(60);
+  const [voiceVolume, setVoiceVolume] = useState(1.0);
+  const [voiceRate, setVoiceRate] = useState(1.0);
 
-  // State
+  // BGM params
+  const [bgmType, setBgmType] = useState('cinematic');
+  const [bgmVolume, setBgmVolume] = useState(0.2);
+
+  // Subtitle params
+  const [subtitleEnabled, setSubtitleEnabled] = useState(true);
+  const [subtitlePosition, setSubtitlePosition] = useState('bottom');
+  const [customPosition, setCustomPosition] = useState(70);
+  const [fontName, setFontName] = useState('STHeitiMedium.ttc');
+  const [fontSize, setFontSize] = useState(60);
+  const [textForeColor, setTextForeColor] = useState('#FFFFFF');
+  const [strokeColor, setStrokeColor] = useState('#000000');
+  const [strokeWidth, setStrokeWidth] = useState(1.5);
+  const [textBackgroundColor, setTextBackgroundColor] = useState(false);
+  const [roundedSubtitleBackground, setRoundedSubtitleBackground] = useState(false);
+
+  // Video params
+  const [videoCount, setVideoCount] = useState(1);
+  const [videoClipDuration, setVideoClipDuration] = useState(5);
+  const [videoClipSpeed, setVideoClipSpeed] = useState(1.0);
+  const [concatMode, setConcatMode] = useState('random');
+  const [transitionMode, setTransitionMode] = useState('');
+
+  // UI state
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Firebase auth listener — onAuthStateChanged(auth, observer, error, completed)
-  // Add a 5s fallback timeout so the UI never gets stuck if Firebase fails silently
+  // Auth
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
-    let timeout: ReturnType<typeof setTimeout> | null = null;
-
-    try {
-      unsubscribe = onAuthStateChanged(
-        auth,
-        (u) => {
-          setUser(u);
-          setAuthLoading(false);
-        },
-        (error: Error & { code?: string }) => {
-          console.error('[Firebase Auth]', (error as any).code, error.message);
-          (window as any).__authError = error;
-          setAuthLoading(false);
-        }
-      );
-    } catch (err) {
-      console.error('[Firebase Init]', err);
-      setAuthLoading(false);
-    }
-
-    // Fallback: if Firebase doesn't resolve in 5s, show the auth gate anyway
-    timeout = setTimeout(() => {
-      setAuthLoading(false);
-    }, 5000);
-
+    let timeout: ReturnType<typeof setTimeout>;
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (u) => {
+        setUser(u);
+        setAuthLoading(false);
+      },
+      () => {
+        setAuthError(true);
+        setAuthLoading(false);
+      }
+    );
+    // Fallback: if onAuthStateChanged never fires (headless), force finish after 5s
+    timeout = setTimeout(() => setAuthLoading(false), 5000);
     return () => {
-      if (timeout) clearTimeout(timeout);
-      if (unsubscribe) unsubscribe();
+      unsubscribe();
+      clearTimeout(timeout);
     };
   }, []);
 
-  async function handleSignIn() {
-    try {
-      await signInWithGoogle();
-    } catch (err) {
-      console.error('Sign in failed:', err);
+  async function handleSubmit() {
+    if (!topic.trim()) {
+      setError('Please enter a topic');
+      return;
     }
-  }
-
-  async function handleSignOut() {
-    await signOutUser();
-    setVideoUrl(null);
-    setTaskId(null);
-    setStatus(null);
     setError(null);
-  }
-
-  async function handleGenerate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!topic.trim()) return;
+    setVideoUrl(null);
     setLoading(true);
-    setError(null);
-    setVideoUrl(null);
-    setStatus(null);
+
+    const params: VideoParams = {
+      video_subject: topic,
+      video_script: customScript || undefined,
+      video_aspect: aspect,
+      video_language: videoLanguage || undefined,
+      voice_name: voice,
+      voice_volume: voiceVolume,
+      voice_rate: voiceRate,
+      bgm_type: bgmType,
+      bgm_volume: bgmVolume,
+      subtitle_enabled: subtitleEnabled,
+      subtitle_position: subtitlePosition,
+      custom_position: subtitlePosition === 'custom' ? customPosition : undefined,
+      font_name: fontName,
+      font_size: fontSize,
+      text_fore_color: textForeColor,
+      text_background_color: textBackgroundColor || undefined,
+      rounded_subtitle_background: roundedSubtitleBackground || undefined,
+      stroke_color: strokeColor,
+      stroke_width: strokeWidth,
+      video_count: videoCount,
+      video_clip_duration: videoClipDuration,
+      video_clip_speed: videoClipSpeed,
+      video_concat_mode: concatMode,
+      video_transition_mode: transitionMode || undefined,
+    };
 
     try {
-      const res = await submitVideoJob({
-        video_subject: topic.trim(),
-        video_aspect: aspect,
-        video_language: 'auto',
-        subtitle_enabled: subtitleEnabled,
-        font_size: fontSize,
-        text_fore_color: '#FFFFFF',
-        stroke_color: '#000000',
-        video_count: 1,
-        voice_name: voice,
-        bgm_type: bgmType,
-      });
-
-      setTaskId(res.task_id);
+      const { task_id } = await submitVideoJob(params);
+      setTaskId(task_id);
       setStatus('queued');
-      pollTask(res.task_id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start generation');
+      pollTask(task_id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to submit job');
       setLoading(false);
     }
   }
@@ -163,21 +224,19 @@ export default function DashboardPage() {
   async function pollTask(id: string) {
     const poll = async () => {
       try {
-        const res = await getVideoTask(id);
-        setStatus(res.status);
-        if (res.status === 'completed' && res.video_url) {
-          setVideoUrl(res.video_url);
+        const task = await getVideoTask(id);
+        setStatus(task.status);
+        if (task.status === 'completed' && task.video_url) {
+          setVideoUrl(task.video_url);
           setLoading(false);
           return;
         }
-        if (res.status === 'failed') {
-          setError(res.error ?? 'Video generation failed. Please try again.');
+        if (task.status === 'failed') {
+          setError(task.error ?? 'Video generation failed');
           setLoading(false);
           return;
         }
-        if (res.status === 'queued' || res.status === 'processing') {
-          setTimeout(poll, 3000);
-        }
+        setTimeout(poll, 3000);
       } catch {
         setTimeout(poll, 5000);
       }
@@ -185,230 +244,434 @@ export default function DashboardPage() {
     poll();
   }
 
-  // Show loading while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Spinner />
-      </div>
-    );
-  }
+  if (authLoading) return (
+    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+      <Spinner message="Connecting..." />
+    </div>
+  );
 
-  // Show auth gate if not signed in
-  if (!user) {
-    return <AuthGate onSignIn={handleSignIn} />;
-  }
+  if (!user) return (
+    <>
+      <AuthGate onSignIn={signInWithGoogle} />
+      {authError && (
+        <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+          <div className="text-center max-w-sm px-4">
+            <div className="text-white/40 mb-4">Firebase auth requires a real browser. Please open this app in Chrome and try again.</div>
+            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-[#EC4899] text-white rounded-lg text-sm cursor-pointer">Retry</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-[#0F172A] text-white">
       {/* Header */}
-      <header className="flex items-center justify-between px-8 py-4 border-b border-slate-800 bg-slate-900/50">
-        <div className="text-lg font-bold">
-          <span className="text-emerald-400">Faceless</span>Video.ai
-        </div>
-        <div className="flex items-center gap-4">
-          {user.photoURL && (
-            <img
-              src={user.photoURL}
-              alt={user.displayName ?? 'User'}
-              className="w-8 h-8 rounded-full"
-            />
-          )}
-          <span className="text-sm text-slate-400 hidden sm:block">{user.email}</span>
-          <span className="text-sm text-emerald-400 font-medium">3/3 free videos</span>
-          <button
-            onClick={handleSignOut}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm transition"
-          >
-            Sign out
-          </button>
+      <header className="border-b border-white/10 bg-[#0F172A]/80 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="font-bold text-lg">
+            <span className="text-[#EC4899]">Faceless</span>Video.ai
+          </div>
+          <div className="flex items-center gap-4">
+            {user.photoURL && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.photoURL} alt={user.displayName ?? ''} className="w-8 h-8 rounded-full" />
+            )}
+            <span className="text-sm text-white/60 hidden sm:block">{user.displayName}</span>
+            <button
+              onClick={signOutUser}
+              className="text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-8 py-12">
-        <h1 className="text-2xl font-bold mb-2">Create a new video</h1>
-        <p className="text-slate-400 mb-8">
-          Enter a topic and we&apos;ll generate a complete faceless video in 60 seconds.
-        </p>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold mb-1">Create Video</h1>
+          <p className="text-white/40 text-sm">Fill in what you want — the AI handles everything else.</p>
+        </div>
 
-        <form onSubmit={handleGenerate} className="space-y-6">
-          {/* Topic */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Video topic</label>
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g. Why index funds beat active trading in 2025"
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-              disabled={loading}
-            />
-          </div>
+        <div className="grid lg:grid-cols-5 gap-6">
+          {/* Left: Form */}
+          <div className="lg:col-span-3 space-y-5">
 
-          {/* Niche */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Niche template</label>
-            <div className="flex flex-wrap gap-2">
-              {NICHES.map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setNiche(n)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    niche === n
-                      ? 'bg-emerald-500 text-slate-950'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                  disabled={loading}
-                >
-                  {n}
-                </button>
-              ))}
+            {/* Topic */}
+            <div className="p-6 rounded-xl border border-white/10 bg-[#1E293B]/50">
+              <label className="block text-sm font-medium text-white/80 mb-2">Video Topic *</label>
+              <input
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="e.g. Why index funds beat active trading"
+                className="w-full px-4 py-3 rounded-lg bg-[#0F172A] border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-[#EC4899]/60 transition-colors text-sm"
+              />
+              <p className="text-white/30 text-xs mt-2">The AI will generate a script from this topic</p>
             </div>
-          </div>
 
-          {/* Aspect ratio */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Aspect ratio</label>
-            <div className="flex gap-3">
-              {ASPECTS.map(({ label, value }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setAspect(value as '9:16' | '16:9' | '1:1')}
-                  className={`flex-1 py-3 rounded-xl text-sm font-medium border transition ${
-                    aspect === value
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                      : 'border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-600'
-                  }`}
-                  disabled={loading}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Advanced toggle */}
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="text-sm text-slate-400 hover:text-white transition flex items-center gap-2"
-          >
-            <span className="text-emerald-400">{showAdvanced ? '−' : '+'}</span>
-            {showAdvanced ? 'Hide advanced options' : 'Show advanced options'}
-          </button>
-
-          {/* Advanced panel */}
-          {showAdvanced && (
-            <div className="p-5 bg-slate-900 border border-slate-800 rounded-xl space-y-5">
-              {/* Voice */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Voice</label>
+            {/* Niche + Aspect */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="p-6 rounded-xl border border-white/10 bg-[#1E293B]/50">
+                <label className="block text-sm font-medium text-white/80 mb-2">Niche</label>
                 <select
-                  value={voice}
-                  onChange={(e) => setVoice(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                  value={niche}
+                  onChange={(e) => setNiche(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg bg-[#0F172A] border border-white/10 text-white focus:outline-none focus:border-[#EC4899]/60 transition-colors text-sm cursor-pointer"
                 >
-                  {AVAILABLE_VOICES.map((v) => (
-                    <option key={v.id} value={v.id}>{v.label}</option>
-                  ))}
+                  {NICHES.map((n) => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
-
-              {/* BGM */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Background music</label>
+              <div className="p-6 rounded-xl border border-white/10 bg-[#1E293B]/50">
+                <label className="block text-sm font-medium text-white/80 mb-2">Aspect Ratio</label>
                 <select
-                  value={bgmType}
-                  onChange={(e) => setBgmType(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                  value={aspect}
+                  onChange={(e) => setAspect(e.target.value as '9:16' | '16:9' | '1:1')}
+                  className="w-full px-4 py-3 rounded-lg bg-[#0F172A] border border-white/10 text-white focus:outline-none focus:border-[#EC4899]/60 transition-colors text-sm cursor-pointer"
                 >
-                  {BGM_TYPES.map((b) => (
-                    <option key={b.id} value={b.id}>{b.label}</option>
-                  ))}
+                  {ASPECTS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
                 </select>
               </div>
+            </div>
 
-              {/* Font size */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Subtitle size: {fontSize}px</label>
+            {/* Video count */}
+            <div className="p-6 rounded-xl border border-white/10 bg-[#1E293B]/50">
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Number of videos to generate
+              </label>
+              <div className="flex items-center gap-4">
                 <input
                   type="range"
-                  min={40}
-                  max={80}
-                  value={fontSize}
-                  onChange={(e) => setFontSize(Number(e.target.value))}
-                  className="w-full accent-emerald-500"
+                  min={1}
+                  max={10}
+                  value={videoCount}
+                  onChange={(e) => setVideoCount(Number(e.target.value))}
+                  className="flex-1 accent-[#EC4899]"
                 />
-              </div>
-
-              {/* Subtitles toggle */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="subtitles"
-                  checked={subtitleEnabled}
-                  onChange={(e) => setSubtitleEnabled(e.target.checked)}
-                  className="w-4 h-4 accent-emerald-500"
-                />
-                <label htmlFor="subtitles" className="text-sm">Burn in subtitles</label>
+                <span className="text-white font-medium w-6 text-right">{videoCount}</span>
               </div>
             </div>
-          )}
 
-          {/* Generate button */}
-          <button
-            type="submit"
-            disabled={loading || !topic.trim()}
-            className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-500 text-slate-950 font-bold text-lg rounded-xl transition"
-          >
-            {loading ? 'Generating...' : 'Generate Video'}
-          </button>
-        </form>
-
-        {/* Error */}
-        {error && (
-          <div className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
-            {error}
-          </div>
-        )}
-
-        {/* Status */}
-        {status && !videoUrl && !error && (
-          <div className="mt-6 p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-slate-300">
-                {status === 'queued' && 'Queued — generation starts shortly...'}
-                {status === 'processing' && 'Generating your video...'}
-              </span>
+            {/* Voice */}
+            <div className="p-6 rounded-xl border border-white/10 bg-[#1E293B]/50">
+              <label className="block text-sm font-medium text-white/80 mb-2">Voice</label>
+              <select
+                value={voice}
+                onChange={(e) => setVoice(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-[#0F172A] border border-white/10 text-white focus:outline-none focus:border-[#EC4899]/60 transition-colors text-sm cursor-pointer mb-4"
+              >
+                {AVAILABLE_VOICES.map((v) => (
+                  <option key={v.id} value={v.id}>{v.label}</option>
+                ))}
+              </select>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-white/40 mb-1 block">Volume ({voiceVolume.toFixed(1)})</label>
+                  <input type="range" min={0} max={1} step={0.1} value={voiceVolume}
+                    onChange={(e) => setVoiceVolume(Number(e.target.value))}
+                    className="w-full accent-[#EC4899]" />
+                </div>
+                <div>
+                  <label className="text-xs text-white/40 mb-1 block">Speed ({voiceRate.toFixed(1)}x)</label>
+                  <input type="range" min={0.5} max={2} step={0.1} value={voiceRate}
+                    onChange={(e) => setVoiceRate(Number(e.target.value))}
+                    className="w-full accent-[#EC4899]" />
+                </div>
+              </div>
             </div>
-            {taskId && (
-              <p className="text-xs text-slate-500 mt-2">Task ID: {taskId}</p>
+
+            {/* BGM */}
+            <div className="p-6 rounded-xl border border-white/10 bg-[#1E293B]/50">
+              <label className="block text-sm font-medium text-white/80 mb-2">Background Music</label>
+              <select
+                value={bgmType}
+                onChange={(e) => setBgmType(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-[#0F172A] border border-white/10 text-white focus:outline-none focus:border-[#EC4899]/60 transition-colors text-sm cursor-pointer mb-4"
+              >
+                {BGM_TYPES.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+              </select>
+              <div>
+                <label className="text-xs text-white/40 mb-1 block">BGM Volume ({bgmVolume.toFixed(1)})</label>
+                <input type="range" min={0} max={1} step={0.05} value={bgmVolume}
+                  onChange={(e) => setBgmVolume(Number(e.target.value))}
+                  className="w-full accent-[#EC4899]" />
+              </div>
+            </div>
+
+            {/* Subtitles */}
+            <div className="p-6 rounded-xl border border-white/10 bg-[#1E293B]/50">
+              <div className="flex items-center justify-between mb-4">
+                <label className="text-sm font-medium text-white/80">Subtitles / Captions</label>
+                <button
+                  onClick={() => setSubtitleEnabled(!subtitleEnabled)}
+                  className={`w-10 h-6 rounded-full transition-colors duration-200 cursor-pointer ${subtitleEnabled ? 'bg-[#EC4899]' : 'bg-white/20'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${subtitleEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                </button>
+              </div>
+
+              {subtitleEnabled && (
+                <div className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">Font</label>
+                      <select value={fontName} onChange={(e) => setFontName(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-[#0F172A] border border-white/10 text-white text-sm cursor-pointer">
+                        {FONT_OPTIONS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">Font Size ({fontSize}px)</label>
+                      <input type="range" min={24} max={120} value={fontSize}
+                        onChange={(e) => setFontSize(Number(e.target.value))}
+                        className="w-full accent-[#EC4899]" />
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">Text Color</label>
+                      <div className="flex items-center gap-2">
+                        <input type="color" value={textForeColor}
+                          onChange={(e) => setTextForeColor(e.target.value)}
+                          className="w-8 h-8 rounded cursor-pointer bg-transparent border-0" />
+                        <input type="text" value={textForeColor}
+                          onChange={(e) => setTextForeColor(e.target.value)}
+                          className="flex-1 px-3 py-1.5 rounded-lg bg-[#0F172A] border border-white/10 text-white text-xs" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">Stroke Color</label>
+                      <div className="flex items-center gap-2">
+                        <input type="color" value={strokeColor}
+                          onChange={(e) => setStrokeColor(e.target.value)}
+                          className="w-8 h-8 rounded cursor-pointer bg-transparent border-0" />
+                        <input type="text" value={strokeColor}
+                          onChange={(e) => setStrokeColor(e.target.value)}
+                          className="flex-1 px-3 py-1.5 rounded-lg bg-[#0F172A] border border-white/10 text-white text-xs" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">Stroke Width ({strokeWidth})</label>
+                      <input type="range" min={0} max={5} step={0.5} value={strokeWidth}
+                        onChange={(e) => setStrokeWidth(Number(e.target.value))}
+                        className="w-full accent-[#EC4899]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">Position</label>
+                      <select value={subtitlePosition} onChange={(e) => setSubtitlePosition(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-[#0F172A] border border-white/10 text-white text-sm cursor-pointer">
+                        {SUBTITLE_POSITIONS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  {subtitlePosition === 'custom' && (
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">Custom Position ({customPosition}%)</label>
+                      <input type="range" min={0} max={100} value={customPosition}
+                        onChange={(e) => setCustomPosition(Number(e.target.value))}
+                        className="w-full accent-[#EC4899]" />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setTextBackgroundColor(!textBackgroundColor)}
+                      className={`w-10 h-6 rounded-full transition-colors duration-200 cursor-pointer ${textBackgroundColor ? 'bg-[#EC4899]' : 'bg-white/20'}`}
+                    >
+                      <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${textBackgroundColor ? 'translate-x-5' : 'translate-x-1'}`} />
+                    </button>
+                    <span className="text-sm text-white/60">Text background (pill shape)</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setRoundedSubtitleBackground(!roundedSubtitleBackground)}
+                      className={`w-10 h-6 rounded-full transition-colors duration-200 cursor-pointer ${roundedSubtitleBackground ? 'bg-[#EC4899]' : 'bg-white/20'}`}
+                    >
+                      <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${roundedSubtitleBackground ? 'translate-x-5' : 'translate-x-1'}`} />
+                    </button>
+                    <span className="text-sm text-white/60">Rounded subtitle background</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Advanced */}
+            <div className="p-6 rounded-xl border border-white/10 bg-[#1E293B]/50">
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="flex items-center justify-between w-full text-sm font-medium text-white/80 cursor-pointer"
+              >
+                Advanced Settings
+                <svg className={`w-4 h-4 transition-transform duration-200 ${showAdvanced ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showAdvanced && (
+                <div className="mt-4 space-y-4">
+                  {/* Custom script */}
+                  <div>
+                    <label className="text-xs text-white/40 mb-1 block">Custom Script (optional — overrides AI generation)</label>
+                    <textarea
+                      value={customScript}
+                      onChange={(e) => setCustomScript(e.target.value)}
+                      rows={4}
+                      placeholder="Paste your own script here. If empty, AI will generate one from the topic."
+                      className="w-full px-4 py-3 rounded-lg bg-[#0F172A] border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-[#EC4899]/60 transition-colors text-sm resize-none"
+                    />
+                  </div>
+
+                  {/* Video clip settings */}
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">Clip Duration ({videoClipDuration}s)</label>
+                      <input type="range" min={2} max={30} value={videoClipDuration}
+                        onChange={(e) => setVideoClipDuration(Number(e.target.value))}
+                        className="w-full accent-[#EC4899]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">Clip Speed ({videoClipSpeed}x)</label>
+                      <input type="range" min={0.5} max={3} step={0.1} value={videoClipSpeed}
+                        onChange={(e) => setVideoClipSpeed(Number(e.target.value))}
+                        className="w-full accent-[#EC4899]" />
+                    </div>
+                  </div>
+
+                  {/* Concat + transition */}
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">Clip Order</label>
+                      <select value={concatMode} onChange={(e) => setConcatMode(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-[#0F172A] border border-white/10 text-white text-sm cursor-pointer">
+                        {CONCAT_MODES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">Transition</label>
+                      <select value={transitionMode} onChange={(e) => setTransitionMode(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-[#0F172A] border border-white/10 text-white text-sm cursor-pointer">
+                        {TRANSITION_MODES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Language */}
+                  <div>
+                    <label className="text-xs text-white/40 mb-1 block">Video Language</label>
+                    <select value={videoLanguage} onChange={(e) => setVideoLanguage(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-[#0F172A] border border-white/10 text-white text-sm cursor-pointer">
+                      {LANGUAGES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                {error}
+              </div>
             )}
-          </div>
-        )}
 
-        {/* Video output */}
-        {videoUrl && (
-          <div className="mt-8 p-6 bg-slate-900 border border-emerald-500/30 rounded-xl">
-            <h3 className="text-lg font-semibold mb-4 text-emerald-400">Your video is ready!</h3>
-            <video
-              src={videoUrl}
-              controls
-              className="w-full rounded-lg"
-              style={{ maxHeight: '500px' }}
-            />
-            <a
-              href={videoUrl}
-              download
-              className="mt-4 inline-block px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold rounded-xl transition"
+            {/* Generate */}
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full py-4 rounded-xl font-semibold bg-[#EC4899] hover:bg-[#DB2777] disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors duration-200 cursor-pointer text-center"
             >
-              Download Video
-            </a>
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"/>
+                  </svg>
+                  Generating...
+                </span>
+              ) : (
+                `Generate ${videoCount > 1 ? `${videoCount} videos` : 'video'} →`
+              )}
+            </button>
           </div>
-        )}
+
+          {/* Right: Preview */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Status */}
+            {status && (
+              <div className="p-5 rounded-xl border border-white/10 bg-[#1E293B]/50">
+                <div className="text-xs text-white/40 mb-2 uppercase tracking-widest">Status</div>
+                <div className="flex items-center gap-2">
+                  {status === 'completed' ? (
+                    <span className="text-[#EC4899] font-medium text-sm">✅ Done</span>
+                  ) : status === 'failed' ? (
+                    <span className="text-red-400 font-medium text-sm">❌ Failed</span>
+                  ) : (
+                    <>
+                      <svg className="animate-spin w-4 h-4 text-[#EC4899]" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"/>
+                      </svg>
+                      <span className="text-white/70 text-sm capitalize">{status}...</span>
+                    </>
+                  )}
+                </div>
+                {taskId && (
+                  <div className="text-xs text-white/30 mt-2 truncate">Task: {taskId}</div>
+                )}
+              </div>
+            )}
+
+            {/* Video output */}
+            {videoUrl && (
+              <div className="rounded-xl border border-white/10 overflow-hidden">
+                <video
+                  src={videoUrl}
+                  controls
+                  autoPlay
+                  className="w-full aspect-[9/16] bg-black object-contain"
+                />
+                <div className="p-4 bg-[#1E293B]">
+                  <a
+                    href={videoUrl}
+                    download
+                    className="block w-full py-2.5 rounded-lg font-medium bg-[#EC4899] hover:bg-[#DB2777] text-white text-sm text-center transition-colors duration-200 cursor-pointer"
+                  >
+                    Download video
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Settings summary */}
+            <div className="p-5 rounded-xl border border-white/10 bg-[#1E293B]/50">
+              <div className="text-xs text-white/40 mb-3 uppercase tracking-widest">Current Settings</div>
+              <div className="space-y-2 text-xs text-white/50">
+                <div className="flex justify-between"><span>Topic</span><span className="text-white/70 truncate ml-2">{topic || '—'}</span></div>
+                <div className="flex justify-between"><span>Niche</span><span className="text-white/70">{niche}</span></div>
+                <div className="flex justify-between"><span>Aspect</span><span className="text-white/70">{aspect}</span></div>
+                <div className="flex justify-between"><span>Videos</span><span className="text-white/70">{videoCount}</span></div>
+                <div className="flex justify-between"><span>Voice</span><span className="text-white/70 truncate ml-2">{voice}</span></div>
+                <div className="flex justify-between"><span>BGM</span><span className="text-white/70">{bgmType}</span></div>
+                <div className="flex justify-between"><span>Subtitles</span><span className="text-white/70">{subtitleEnabled ? 'On' : 'Off'}</span></div>
+                {subtitleEnabled && (
+                  <>
+                    <div className="flex justify-between"><span>Font</span><span className="text-white/70 text-xs">{fontName}</span></div>
+                    <div className="flex justify-between"><span>Font size</span><span className="text-white/70">{fontSize}px</span></div>
+                    <div className="flex justify-between"><span>Text color</span><span className="text-white/70">{textForeColor}</span></div>
+                    <div className="flex justify-between"><span>Stroke</span><span className="text-white/70">{strokeColor} × {strokeWidth}</span></div>
+                    <div className="flex justify-between"><span>Position</span><span className="text-white/70">{subtitlePosition}</span></div>
+                  </>
+                )}
+                <div className="flex justify-between"><span>Clip duration</span><span className="text-white/70">{videoClipDuration}s</span></div>
+                <div className="flex justify-between"><span>Clip speed</span><span className="text-white/70">{videoClipSpeed}x</span></div>
+                <div className="flex justify-between"><span>Concat</span><span className="text-white/70">{concatMode}</span></div>
+                <div className="flex justify-between"><span>Transition</span><span className="text-white/70">{transitionMode || 'cut'}</span></div>
+                <div className="flex justify-between"><span>Language</span><span className="text-white/70">{videoLanguage || 'auto'}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
