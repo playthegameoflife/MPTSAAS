@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import {
   submitVideoJob,
@@ -10,6 +11,7 @@ import {
   type VideoParams,
 } from '@/lib/mpt-service';
 import { signInWithGoogle, signOutUser, onAuthStateChanged, auth, type User } from '@/lib/firebase';
+import { saveVideoJob, updateVideoJob } from '@/lib/firestore';
 
 // ─── MPT Constants ──────────────────────────────────────────────────────────
 
@@ -148,6 +150,7 @@ export default function DashboardPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [firestoreDocId, setFirestoreDocId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -214,25 +217,39 @@ export default function DashboardPage() {
       const { task_id } = await submitVideoJob(params);
       setTaskId(task_id);
       setStatus('queued');
-      pollTask(task_id);
+
+      // Save to Firestore for history
+      let docId: string | null = null;
+      if (user) {
+        try {
+          docId = await saveVideoJob({ userId: user.uid, taskId: task_id, topic, niche, aspect });
+          setFirestoreDocId(docId);
+        } catch (e) {
+          console.warn('Failed to save video job to Firestore', e);
+        }
+      }
+
+      pollTask(task_id, docId);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to submit job');
       setLoading(false);
     }
   }
 
-  async function pollTask(id: string) {
+  async function pollTask(id: string, docId: string | null) {
     const poll = async () => {
       try {
         const task = await getVideoTask(id);
         setStatus(task.status);
         if (task.status === 'completed' && task.video_url) {
           setVideoUrl(task.video_url);
+          if (docId) updateVideoJob({ docId, status: 'completed', videoUrl: task.video_url }).catch(console.warn);
           setLoading(false);
           return;
         }
         if (task.status === 'failed') {
           setError(task.error ?? 'Video generation failed');
+          if (docId) updateVideoJob({ docId, status: 'failed', error: task.error }).catch(console.warn);
           setLoading(false);
           return;
         }
@@ -270,21 +287,25 @@ export default function DashboardPage() {
       <header className="border-b border-white/10 bg-[#0F172A]/80 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="font-bold text-lg">
-            <span className="text-[#EC4899]">Faceless</span>Video.ai
+            <Link href="/" className="text-white hover:text-[#EC4899] transition-colors">
+              <span className="text-[#EC4899]">Faceless</span>Video.ai
+            </Link>
           </div>
-          <div className="flex items-center gap-4">
+          <nav className="flex items-center gap-5 text-sm">
+            <Link href="/dashboard" className="text-white/60 hover:text-white transition-colors">Create</Link>
+            <Link href="/my-videos" className="text-white/60 hover:text-white transition-colors">My Videos</Link>
+            <Link href="/account" className="text-white/60 hover:text-white transition-colors">Account</Link>
             {user.photoURL && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.photoURL} alt={user.displayName ?? ''} className="w-8 h-8 rounded-full" />
             )}
-            <span className="text-sm text-white/60 hidden sm:block">{user.displayName}</span>
             <button
               onClick={signOutUser}
               className="text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer"
             >
               Sign out
             </button>
-          </div>
+          </nav>
         </div>
       </header>
 
