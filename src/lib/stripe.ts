@@ -14,14 +14,8 @@ export const PLANS = {
   free: null,
   pro: {
     name: 'Pro',
-    price: 1900,
+    price: 3000,
     priceId: process.env.STRIPE_PRICE_PRO ?? 'price_pro_placeholder',
-    credits: 20,
-  },
-  unlimited: {
-    name: 'Unlimited',
-    price: 4900,
-    priceId: process.env.STRIPE_PRICE_UNLIMITED ?? 'price_unlimited_placeholder',
     credits: -1,
   },
 } as const;

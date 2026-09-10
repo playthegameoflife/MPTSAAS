@@ -5,24 +5,16 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
       {/* Nav */}
       <nav className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b border-slate-800">
-        <div className="text-lg sm:text-xl font-bold tracking-tight">
+        <Link href="/" className="text-lg sm:text-xl font-bold tracking-tight">
           <span className="text-emerald-400">Faceless</span>Video.ai
-        </div>
-        {/* Desktop nav */}
-        <div className="hidden sm:flex items-center gap-6 text-sm text-slate-400">
-          <a href="#features" className="hover:text-white transition">Features</a>
-          <a href="#pricing" className="hover:text-white transition">Pricing</a>
+        </Link>
+        <div className="flex items-center gap-6 text-sm text-slate-400">
+          <a href="#features" className="hidden sm:block hover:text-white transition">Features</a>
+          <a href="#pricing" className="hidden sm:block hover:text-white transition">Pricing</a>
           <Link href="/dashboard" className="text-white font-medium hover:text-emerald-400 transition">
             Start Free →
           </Link>
         </div>
-        {/* Mobile CTA */}
-        <Link
-          href="/dashboard"
-          className="sm:hidden px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-medium rounded-lg text-sm"
-        >
-          Start Free
-        </Link>
       </nav>
 
       {/* Hero */}
@@ -111,60 +103,26 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="max-w-5xl mx-auto px-4 sm:px-8 py-16 sm:py-20 border-t border-slate-800">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4">Simple, transparent pricing</h2>
-        <p className="text-slate-400 text-center mb-12 sm:mb-16">Start free. Upgrade when you're ready to scale.</p>
-        <div className="grid md:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
-          {[
-            {
-              name: 'Free',
-              price: '$0',
-              videos: '3 videos/month',
-              desc: 'Try it out. No credit card.',
-              cta: 'Start free',
-              highlight: false,
-            },
-            {
-              name: 'Pro',
-              price: '$19',
-              videos: '20 videos/month',
-              desc: 'For creators building a consistent posting schedule.',
-              cta: 'Get Pro',
-              highlight: true,
-            },
-            {
-              name: 'Unlimited',
-              price: '$49',
-              videos: 'Unlimited videos/month',
-              desc: 'For agencies and creators posting daily across multiple channels.',
-              cta: 'Go unlimited',
-              highlight: false,
-            },
-          ].map(({ name, price, videos, desc, cta, highlight }) => (
-            <div
-              key={name}
-              className={`p-4 sm:p-6 lg:p-8 rounded-2xl border ${
-                highlight
-                  ? 'bg-slate-900 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
-                  : 'bg-slate-900/50 border-slate-800'
-              }`}
-            >
-              <div className="text-sm font-medium text-slate-400 mb-2">{name}</div>
-              <div className="text-3xl sm:text-4xl font-bold mb-1">{price}<span className="text-lg font-normal text-slate-400">/mo</span></div>
-              <div className="text-emerald-400 text-sm mb-4">{videos}</div>
-              <p className="text-slate-400 text-sm mb-6 sm:mb-8">{desc}</p>
-              <button
-                className={`w-full py-3 rounded-xl font-medium transition-all text-sm sm:text-base ${
-                  highlight
-                    ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
-                    : 'bg-slate-800 hover:bg-slate-700 text-white'
-                }`}
-              >
-                {cta}
-              </button>
-            </div>
-          ))}
+      {/* Pricing — single plan */}
+      <section id="pricing" className="max-w-md mx-auto px-4 sm:px-8 py-16 sm:py-20 border-t border-slate-800">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Simple, transparent pricing</h2>
+        <p className="text-slate-400 text-center mb-12">One plan. Everything you need.</p>
+
+        <div className="p-6 sm:p-8 rounded-2xl border bg-slate-900 border-emerald-500/50 shadow-lg shadow-emerald-500/10 text-center">
+          <div className="text-sm font-medium text-slate-400 mb-4">Pro</div>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <div className="text-slate-500 line-through text-2xl font-medium">$45</div>
+            <div className="text-5xl font-bold">$30<span className="text-xl font-normal text-slate-400">/mo</span></div>
+          </div>
+          <div className="text-emerald-400 text-sm mb-6">Unlimited videos per month</div>
+          <p className="text-slate-400 text-sm mb-8">Full access to all features. Post every day without limits.</p>
+          <Link
+            href="/dashboard"
+            className="block w-full py-3 rounded-xl font-medium bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all"
+          >
+            Start free — 3 included
+          </Link>
+          <p className="text-slate-600 text-xs mt-4">Cancel anytime · No contracts</p>
         </div>
       </section>
 
