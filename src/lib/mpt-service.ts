@@ -51,7 +51,9 @@ export interface VideoParams {
 export interface VideoTask {
   task_id: string;
   status: 'queued' | 'processing' | 'completed' | 'failed';
-  video_url?: string;
+  videos?: string[];           // MPT relative paths, e.g. ["/tasks/.../final-1.mp4"]
+  combined_videos?: string[];
+  video_url?: string;          // constructed full URL (for backward compat)
   created_at?: string;
   video_subject?: string;
   error?: string;
@@ -111,7 +113,8 @@ export async function submitVideoJob(params: VideoParams): Promise<{ task_id: st
  * We never inspect MPT internals — just the status + output URL.
  */
 export async function getVideoTask(taskId: string): Promise<VideoTask> {
-  const url = `${getBaseUrl()}/tasks/${taskId}`;
+  const baseUrl = getBaseUrl();
+  const url = `${baseUrl}/tasks/${taskId}`;
   const res = await fetch(url);
 
   if (!res.ok) {
@@ -120,7 +123,15 @@ export async function getVideoTask(taskId: string): Promise<VideoTask> {
   }
 
   const data = await res.json();
-  return data.data ?? data;
+  const task: VideoTask = data.data ?? data;
+
+  // Construct full video URLs from MPT's relative paths
+  if (task.videos?.length && !task.video_url) {
+    const relativePath = task.videos[0];
+    task.video_url = `${baseUrl}${relativePath}`;
+  }
+
+  return task;
 }
 
 // ---------------------------------------------------------------------------
