@@ -4,29 +4,37 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b border-slate-800">
-        <div className="text-xl font-bold tracking-tight">
+      <nav className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b border-slate-800">
+        <div className="text-lg sm:text-xl font-bold tracking-tight">
           <span className="text-emerald-400">Faceless</span>Video.ai
         </div>
-        <div className="flex items-center gap-6 text-sm text-slate-400">
+        {/* Desktop nav */}
+        <div className="hidden sm:flex items-center gap-6 text-sm text-slate-400">
           <a href="#features" className="hover:text-white transition">Features</a>
           <a href="#pricing" className="hover:text-white transition">Pricing</a>
           <Link href="/dashboard" className="text-white font-medium hover:text-emerald-400 transition">
             Start Free →
           </Link>
         </div>
+        {/* Mobile CTA */}
+        <Link
+          href="/dashboard"
+          className="sm:hidden px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-medium rounded-lg text-sm"
+        >
+          Start Free
+        </Link>
       </nav>
 
       {/* Hero */}
-      <section className="max-w-4xl mx-auto px-8 py-32 text-center">
+      <section className="max-w-4xl mx-auto px-4 sm:px-8 py-16 sm:py-32 text-center">
         <div className="inline-block px-3 py-1 mb-6 text-xs font-medium text-emerald-400 bg-emerald-400/10 rounded-full border border-emerald-400/20">
           3 free videos per month · No credit card required
         </div>
-        <h1 className="text-5xl font-bold leading-tight mb-6">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-6">
           Post 3 videos a day<br />
           <span className="text-emerald-400">without showing your face</span>
         </h1>
-        <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
           Topic → video → posted to TikTok, YouTube, and Facebook in under 60 seconds.
           No video editing skills needed.
         </p>
@@ -47,8 +55,8 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="max-w-5xl mx-auto px-8 py-20 border-t border-slate-800">
-        <h2 className="text-3xl font-bold text-center mb-16">From topic to posted in 60 seconds</h2>
+      <section id="how-it-works" className="max-w-5xl mx-auto px-4 sm:px-8 py-16 sm:py-20 border-t border-slate-800">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-16">From topic to posted in 60 seconds</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {[
             {
@@ -79,8 +87,8 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section id="features" className="max-w-5xl mx-auto px-8 py-20 border-t border-slate-800">
-        <h2 className="text-3xl font-bold text-center mb-16">Everything you need to go viral</h2>
+      <section id="features" className="max-w-5xl mx-auto px-4 sm:px-8 py-16 sm:py-20 border-t border-slate-800">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-16">Everything you need to go viral</h2>
         <div className="grid md:grid-cols-2 gap-6">
           {[
             { title: 'AI-generated scripts', desc: 'LLM writes engaging hooks and narration for your niche' },
@@ -104,10 +112,10 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="max-w-5xl mx-auto px-8 py-20 border-t border-slate-800">
-        <h2 className="text-3xl font-bold text-center mb-4">Simple, transparent pricing</h2>
-        <p className="text-slate-400 text-center mb-16">Start free. Upgrade when you're ready to scale.</p>
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+      <section id="pricing" className="max-w-5xl mx-auto px-4 sm:px-8 py-16 sm:py-20 border-t border-slate-800">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4">Simple, transparent pricing</h2>
+        <p className="text-slate-400 text-center mb-12 sm:mb-16">Start free. Upgrade when you're ready to scale.</p>
+        <div className="grid md:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
           {[
             {
               name: 'Free',
@@ -136,18 +144,18 @@ export default function Home() {
           ].map(({ name, price, videos, desc, cta, highlight }) => (
             <div
               key={name}
-              className={`p-8 rounded-2xl border ${
+              className={`p-4 sm:p-6 lg:p-8 rounded-2xl border ${
                 highlight
                   ? 'bg-slate-900 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
                   : 'bg-slate-900/50 border-slate-800'
               }`}
             >
               <div className="text-sm font-medium text-slate-400 mb-2">{name}</div>
-              <div className="text-4xl font-bold mb-1">{price}<span className="text-lg font-normal text-slate-400">/mo</span></div>
+              <div className="text-3xl sm:text-4xl font-bold mb-1">{price}<span className="text-lg font-normal text-slate-400">/mo</span></div>
               <div className="text-emerald-400 text-sm mb-4">{videos}</div>
-              <p className="text-slate-400 text-sm mb-8">{desc}</p>
+              <p className="text-slate-400 text-sm mb-6 sm:mb-8">{desc}</p>
               <button
-                className={`w-full py-3 rounded-xl font-medium transition-all ${
+                className={`w-full py-3 rounded-xl font-medium transition-all text-sm sm:text-base ${
                   highlight
                     ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
                     : 'bg-slate-800 hover:bg-slate-700 text-white'
