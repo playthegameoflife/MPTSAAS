@@ -1,20 +1,29 @@
+import Stripe from 'stripe';
 import { NextResponse } from 'next/server';
-import { stripe, PLANS } from '@/lib/stripe';
-import { PlanKey } from '@/lib/stripe';
+
+const PLANS = {
+  pro: {
+    name: 'Pro',
+    price: 3000,
+    priceId: process.env.STRIPE_PRICE_PRO ?? 'price_pro_placeholder',
+  },
+} as const;
 
 export async function POST(request: Request) {
   try {
-    const { plan } = (await request.json()) as { plan: PlanKey };
+    const { plan } = (await request.json()) as { plan: keyof typeof PLANS };
 
     if (!plan || !PLANS[plan]) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
     const planConfig = PLANS[plan];
-    if (!planConfig) {
-      return NextResponse.json({ error: 'Free plan does not need checkout' }, { status: 400 });
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
+      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
     }
 
+    const stripe = new Stripe(stripeKey, { apiVersion: '2026-08-26.dahlia' });
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
 
     const session = await stripe.checkout.sessions.create({
@@ -25,10 +34,7 @@ export async function POST(request: Request) {
             currency: 'usd',
             product_data: {
               name: `FacelessVideo.ai — ${planConfig.name}`,
-              description:
-                plan === 'pro'
-                  ? '20 AI-generated videos per month'
-                  : 'Unlimited AI-generated videos per month',
+              description: 'Unlimited AI-generated videos per month',
             },
             unit_amount: planConfig.price,
             recurring: { interval: 'month' },

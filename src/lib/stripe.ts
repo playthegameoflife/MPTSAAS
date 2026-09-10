@@ -1,15 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Stripe = require('stripe');
-
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set');
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const stripe = new (Stripe as any)(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-04-30.basil',
-});
-
+// PLANS config — imported by pricing page
 export const PLANS = {
   free: null,
   pro: {
