@@ -79,8 +79,11 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Firebase auth listener — onAuthStateChanged(auth, observer, error, completed)
+  // Add a 5s fallback timeout so the UI never gets stuck if Firebase fails silently
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
     try {
       unsubscribe = onAuthStateChanged(
         auth,
@@ -98,7 +101,14 @@ export default function DashboardPage() {
       console.error('[Firebase Init]', err);
       setAuthLoading(false);
     }
+
+    // Fallback: if Firebase doesn't resolve in 5s, show the auth gate anyway
+    timeout = setTimeout(() => {
+      setAuthLoading(false);
+    }, 5000);
+
     return () => {
+      if (timeout) clearTimeout(timeout);
       if (unsubscribe) unsubscribe();
     };
   }, []);
