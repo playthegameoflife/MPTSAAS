@@ -1,7 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { createVideo, getTask, DEFAULT_VOICE, type VideoParams } from '@/lib/mpt';
+import {
+  submitVideoJob,
+  getVideoTask,
+  DEFAULT_VOICE,
+  AVAILABLE_VOICES,
+  BGM_TYPES,
+} from '@/lib/mpt-service';
 
 const NICHES = ['Finance', 'Fitness', 'Tech', 'Crypto', 'Motivation', 'Lifestyle', 'Business', 'Health'];
 const ASPECTS = [
@@ -13,7 +19,16 @@ const ASPECTS = [
 export default function DashboardPage() {
   const [topic, setTopic] = useState('');
   const [niche, setNiche] = useState('Tech');
-  const [aspect, setAspect] = useState('9:16');
+  const [aspect, setAspect] = useState<'9:16' | '16:9' | '1:1'>('9:16');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Advanced options
+  const [voice, setVoice] = useState(DEFAULT_VOICE);
+  const [bgmType, setBgmType] = useState('cinematic');
+  const [subtitleEnabled, setSubtitleEnabled] = useState(true);
+  const [fontSize, setFontSize] = useState(60);
+
+  // State
   const [loading, setLoading] = useState(false);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -28,23 +43,23 @@ export default function DashboardPage() {
     setVideoUrl(null);
     setStatus(null);
 
-    const params: VideoParams = {
-      video_subject: topic.trim(),
-      video_aspect: aspect as VideoParams['video_aspect'],
-      video_language: 'auto',
-      subtitle_enabled: true,
-      font_size: 60,
-      text_fore_color: '#FFFFFF',
-      stroke_color: '#000000',
-      video_count: 1,
-      voice_name: DEFAULT_VOICE,
-    };
-
     try {
-      const res = await createVideo(params);
-      setTaskId(res.data.task_id);
+      const res = await submitVideoJob({
+        video_subject: topic.trim(),
+        video_aspect: aspect,
+        video_language: 'auto',
+        subtitle_enabled: subtitleEnabled,
+        font_size: fontSize,
+        text_fore_color: '#FFFFFF',
+        stroke_color: '#000000',
+        video_count: 1,
+        voice_name: voice,
+        bgm_type: bgmType,
+      });
+
+      setTaskId(res.task_id);
       setStatus('queued');
-      pollTask(res.data.task_id);
+      pollTask(res.task_id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start generation');
       setLoading(false);
@@ -54,20 +69,19 @@ export default function DashboardPage() {
   async function pollTask(id: string) {
     const poll = async () => {
       try {
-        const res = await getTask(id);
-        const task = res.data;
-        setStatus(task.status);
-        if (task.status === 'completed' && task.video_url) {
-          setVideoUrl(task.video_url);
+        const res = await getVideoTask(id);
+        setStatus(res.status);
+        if (res.status === 'completed' && res.video_url) {
+          setVideoUrl(res.video_url);
           setLoading(false);
           return;
         }
-        if (task.status === 'failed') {
-          setError('Video generation failed. Please try again.');
+        if (res.status === 'failed') {
+          setError(res.error ?? 'Video generation failed. Please try again.');
           setLoading(false);
           return;
         }
-        if (task.status === 'queued' || task.status === 'processing') {
+        if (res.status === 'queued' || res.status === 'processing') {
           setTimeout(poll, 3000);
         }
       } catch {
@@ -94,7 +108,9 @@ export default function DashboardPage() {
 
       <div className="max-w-3xl mx-auto px-8 py-12">
         <h1 className="text-2xl font-bold mb-2">Create a new video</h1>
-        <p className="text-slate-400 mb-8">Enter a topic and we&apos;ll generate a complete faceless video in 60 seconds.</p>
+        <p className="text-slate-400 mb-8">
+          Enter a topic and we&apos;ll generate a complete faceless video in 60 seconds.
+        </p>
 
         <form onSubmit={handleGenerate} className="space-y-6">
           {/* Topic */}
@@ -154,6 +170,101 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Advanced toggle */}
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="text-sm text-slate-400 hover:text-white transition flex items-center gap-2"
+          >
+            <span className="text-emerald-400">{showAdvanced ? '−' : '+'}</span>
+            {showAdvanced ? 'Hide advanced options' : 'Show advanced options'}
+          </button>
+
+          {/* Advanced panel */}
+          {showAdvanced && (
+            <div className="p-5 bg-slate-900 border border-slate-800 rounded-xl space-y-5">
+              {/* Voice */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Voice</label>
+                <select
+                  value={voice}
+                  onChange={(e) => setVoice(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 transition"
+                  disabled={loading}
+                >
+                  {AVAILABLE_VOICES.map((v) => (
+                    <option key={v.id} value={v.id}>{v.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* BGM */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Background music</label>
+                <div className="flex flex-wrap gap-2">
+                  {BGM_TYPES.map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setBgmType(b.id)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                        bgmType === b.id
+                          ? 'bg-emerald-500 text-slate-950'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                      disabled={loading}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Subtitles */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Captions / Subtitles</div>
+                  <div className="text-xs text-slate-400">Burned into the video</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSubtitleEnabled(!subtitleEnabled)}
+                  className={`w-12 h-7 rounded-full transition ${
+                    subtitleEnabled ? 'bg-emerald-500' : 'bg-slate-700'
+                  }`}
+                  disabled={loading}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                    subtitleEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+
+              {/* Font size */}
+              {subtitleEnabled && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Caption size — {fontSize}px
+                  </label>
+                  <input
+                    type="range"
+                    min={24}
+                    max={120}
+                    step={4}
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="w-full accent-emerald-500"
+                    disabled={loading}
+                  />
+                  <div className="flex justify-between text-xs text-slate-500 mt-1">
+                    <span>Small</span>
+                    <span>Large</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Submit */}
           <button
             type="submit"
@@ -170,13 +281,14 @@ export default function DashboardPage() {
           </button>
         </form>
 
-        {/* Status */}
+        {/* Error */}
         {error && (
           <div className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
             {error}
           </div>
         )}
 
+        {/* Status */}
         {status && !videoUrl && !error && (
           <div className="mt-6 p-6 bg-slate-900 border border-slate-800 rounded-xl text-center">
             <div className="text-4xl mb-3">
@@ -199,7 +311,6 @@ export default function DashboardPage() {
                 src={videoUrl}
                 controls
                 className="w-full"
-                poster="/thumbnail-placeholder.png"
               />
             </div>
             <div className="flex gap-3">
@@ -217,20 +328,28 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* History */}
+        {/* History — placeholder, will wire to Supabase */}
         {videoUrl && (
           <div className="mt-10">
             <h2 className="text-lg font-semibold mb-4">Recent videos</h2>
             <div className="space-y-3">
               <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
-                <div className="w-24 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-slate-500 text-xs">Thumb</div>
+                <div className="w-24 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-slate-500 text-xs">
+                  Thumb
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{topic}</div>
-                  <div className="text-slate-400 text-sm">{niche} · {aspect} · Just now</div>
+                  <div className="text-slate-400 text-sm">
+                    {niche} · {aspect} · Just now
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="px-3 py-1.5 bg-slate-800 rounded-lg text-xs hover:bg-slate-700">Repost</button>
-                  <button className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-xs hover:bg-red-500/30">Delete</button>
+                  <button className="px-3 py-1.5 bg-slate-800 rounded-lg text-xs hover:bg-slate-700">
+                    Repost
+                  </button>
+                  <button className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-xs hover:bg-red-500/30">
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>

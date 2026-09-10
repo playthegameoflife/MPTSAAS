@@ -30,8 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files — NEVER commit .env.local, .env.production, etc.
+.env.local
+.env.production
+.env.*.local
+# .env.example is the TEMPLATE and should always be committed
+# All other .env files are gitignored above
 
 # vercel
 .vercel
