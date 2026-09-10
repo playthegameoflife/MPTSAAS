@@ -1,20 +1,10 @@
 'use client';
 
+import AppShell from '@/components/AppShell';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { onAuthStateChanged, auth, signInWithGoogle, type User } from '@/lib/firebase';
+import { onAuthStateChanged, auth } from '@/lib/firebase';
 import { getUserVideos, type VideoRecord } from '@/lib/firestore';
-
-function Spinner() {
-  return (
-    <div className="flex items-center justify-center py-20">
-      <svg className="animate-spin w-6 h-6 text-[#EC4899]" fill="none" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"/>
-      </svg>
-    </div>
-  );
-}
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat('en-US', {
@@ -22,60 +12,91 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
+function StatusBadge({ status }: { status: VideoRecord['status'] }) {
+  const config = {
+    queued:     { bg: 'var(--bg-overlay)', color: 'var(--fg-tertiary)', label: 'Queued' },
+    processing: { bg: 'var(--warning-subtle)', color: 'var(--warning)', label: 'Processing' },
+    completed:  { bg: 'var(--success-subtle)', color: 'var(--success)', label: 'Done' },
+    failed:     { bg: 'var(--error-subtle)', color: 'var(--error)', label: 'Failed' },
+  }[status];
+
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '3px 8px', borderRadius: 'var(--radius-full)',
+      fontSize: 11, fontWeight: 500,
+      background: config.bg, color: config.color,
+    }}>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
+      {config.label}
+    </span>
+  );
+}
+
 function VideoCard({ video }: { video: VideoRecord }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-[#1E293B]/50 overflow-hidden">
-      {/* Video preview area */}
-      <div className="aspect-video bg-black relative">
+    <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-xs)', transition: 'box-shadow var(--transition-base)' }}>
+      {/* Preview area */}
+      <div style={{
+        aspectRatio: video.aspect === '9:16' ? '9/16' : video.aspect === '1:1' ? '1/1' : '16/9',
+        background: '#000', position: 'relative',
+      }}>
         {video.status === 'completed' && video.videoUrl ? (
           <video
             src={video.videoUrl}
             controls
             preload="metadata"
-            className="w-full h-full object-contain"
+            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
           />
-        ) : video.status === 'processing' || video.status === 'queued' ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-white/40">
-            <svg className="animate-spin w-8 h-8" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"/>
+        ) : video.status === 'queued' || video.status === 'processing' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.8s linear infinite', color: 'var(--fg-tertiary)' }}>
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" strokeOpacity="0.3"/>
+              <path d="M12 3A9 9 0 0 1 21 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            <span className="text-xs">{video.status === 'queued' ? 'Queued...' : 'Processing...'}</span>
+            <span style={{ fontSize: 11, color: 'var(--fg-tertiary)' }}>{video.status === 'queued' ? 'Queued...' : 'Processing...'}</span>
           </div>
         ) : video.status === 'failed' ? (
-          <div className="flex flex-col items-center justify-center h-full text-red-400 gap-2">
-            <span className="text-2xl">❌</span>
-            <span className="text-xs text-red-400/60 px-4 text-center">{video.error ?? 'Generation failed'}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 6 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--error)' }}>
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontSize: 11, color: 'var(--error)', textAlign: 'center', padding: '0 12px' }}>{video.error ?? 'Generation failed'}</span>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-white/20 text-xs">No preview</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--fg-tertiary)', fontSize: 12 }}>No preview</div>
         )}
       </div>
 
       {/* Card info */}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="text-sm font-medium text-white/80 leading-tight line-clamp-2 flex-1">
+      <div style={{ padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 500, color: 'var(--fg-primary)', lineHeight: 1.4, flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
             {video.topic}
           </h3>
         </div>
-        <div className="flex items-center gap-2 text-xs text-white/30 mb-3">
-          <span>{video.niche}</span>
-          <span>·</span>
-          <span>{video.aspect}</span>
-          <span>·</span>
-          <span>{formatDate(video.createdAt)}</span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          <StatusBadge status={video.status} />
+          <span style={{ fontSize: 11, color: 'var(--fg-tertiary)' }}>{video.niche}</span>
+          <span style={{ color: 'var(--border-strong)', fontSize: 10 }}>·</span>
+          <span style={{ fontSize: 11, color: 'var(--fg-tertiary)' }}>{video.aspect}</span>
+          <span style={{ color: 'var(--border-strong)', fontSize: 10 }}>·</span>
+          <span style={{ fontSize: 11, color: 'var(--fg-tertiary)' }}>{formatDate(video.createdAt)}</span>
         </div>
+
         {video.status === 'completed' && video.videoUrl && (
           <a
             href={video.videoUrl}
             download
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-[#EC4899]/20 hover:bg-[#EC4899]/30 text-[#EC4899] text-xs font-medium transition-colors cursor-pointer"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', background: 'var(--accent-subtle)', color: 'var(--accent)', fontSize: 12, fontWeight: 500, transition: 'background var(--transition-fast)' }}
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M6.5 1.5V8.5M3 6L6.5 9.5L10 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M1.5 10.5H11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
             </svg>
             Download
           </a>
@@ -85,26 +106,41 @@ function VideoCard({ video }: { video: VideoRecord }) {
   );
 }
 
+function EmptyState() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 24px', textAlign: 'center' }}>
+      <div style={{ width: 56, height: 56, borderRadius: 'var(--radius-xl)', background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--fg-tertiary)' }}>
+          <rect x="2" y="5" width="20" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M10 9.5L14 12L10 14.5V9.5Z" fill="currentColor"/>
+        </svg>
+      </div>
+      <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--fg-primary)', marginBottom: 8 }}>No videos yet</h2>
+      <p style={{ fontSize: 14, color: 'var(--fg-secondary)', marginBottom: 24, maxWidth: 280 }}>
+        Generate your first faceless video with AI.
+      </p>
+      <Link
+        href="/dashboard"
+        style={{ padding: '10px 20px', borderRadius: 'var(--radius-lg)', background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 500, transition: 'background var(--transition-fast)' }}
+      >
+        Create a video →
+      </Link>
+    </div>
+  );
+}
+
 export default function MyVideosPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState<import('@/lib/firebase').User | null>(null);
   const [videos, setVideos] = useState<VideoRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState(false);
 
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (u) => { setUser(u); setAuthLoading(false); },
-      () => { setAuthError(true); setAuthLoading(false); }
-    );
-    timeout = setTimeout(() => setAuthLoading(false), 5000);
-    return () => { unsubscribe(); clearTimeout(timeout); };
+    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     getUserVideos(user.uid)
       .then(setVideos)
@@ -112,70 +148,57 @@ export default function MyVideosPage() {
       .finally(() => setLoading(false));
   }, [user]);
 
-  if (authLoading) return (
-    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center"><Spinner /></div>
-  );
-
-  if (!user) return (
-    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
-      <div className="text-center max-w-sm px-4">
-        <div className="text-4xl mb-4">🎬</div>
-        <h2 className="text-2xl font-bold text-white mb-2">Sign in to see your videos</h2>
-        <p className="text-white/40 mb-8">Your generated videos will appear here.</p>
-        <button
-          onClick={signInWithGoogle}
-          className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-          Continue with Google
-        </button>
-      </div>
-    </div>
-  );
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">My Videos</h1>
-          <p className="text-white/40 text-sm mt-1">
-            {loading ? 'Loading...' : `${videos.length} video${videos.length !== 1 ? 's' : ''}`}
-          </p>
-        </div>
-        <Link
-          href="/dashboard"
-          className="px-4 py-2 bg-[#EC4899] hover:bg-[#DB2777] text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
-        >
-          + New video
-        </Link>
-      </div>
-
-      {loading ? (
-        <Spinner />
-      ) : videos.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="text-5xl mb-4">🎬</div>
-          <h2 className="text-xl font-bold text-white mb-2">No videos yet</h2>
-          <p className="text-white/40 mb-6">Generate your first faceless video.</p>
+    <AppShell>
+      <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--fg-primary)', marginBottom: 4 }}>My Videos</h1>
+            <p style={{ fontSize: 13, color: 'var(--fg-secondary)' }}>
+              {loading ? 'Loading...' : `${videos.length} video${videos.length !== 1 ? 's' : ''}`}
+            </p>
+          </div>
           <Link
             href="/dashboard"
-            className="inline-block px-6 py-3 bg-[#EC4899] hover:bg-[#DB2777] text-white font-medium rounded-xl transition-colors cursor-pointer"
+            style={{ padding: '8px 16px', borderRadius: 'var(--radius-lg)', background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 500, transition: 'background var(--transition-fast)', display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            Create a video →
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 1V11M1 6H11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            New video
           </Link>
         </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {videos.map((video) => (
-            <VideoCard key={video.id} video={video} />
-          ))}
-        </div>
-      )}
-    </div>
+
+        {/* Grid */}
+        {!loading && videos.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
+            {!loading && videos.map((video) => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+            {loading && (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                  <div style={{ aspectRatio: '16/9', background: 'var(--bg-overlay)' }} />
+                  <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ height: 14, background: 'var(--bg-overlay)', borderRadius: 4, width: '75%' }} />
+                    <div style={{ height: 12, background: 'var(--bg-overlay)', borderRadius: 4, width: '50%' }} />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </AppShell>
   );
 }

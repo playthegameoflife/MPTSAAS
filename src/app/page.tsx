@@ -1,185 +1,188 @@
 import Link from 'next/link';
+import AppShell from '@/components/AppShell';
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#0F172A] text-white">
-      {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0F172A]/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
-          <Link href="/" className="text-lg font-bold tracking-tight">
-            <span className="text-[#EC4899]">Faceless</span>Video.ai
-          </Link>
-          <div className="flex items-center gap-8">
-            <a href="#features" className="hidden sm:block text-sm text-white/60 hover:text-white transition-colors duration-200">Features</a>
-            <a href="#pricing" className="hidden sm:block text-sm text-white/60 hover:text-white transition-colors duration-200">Pricing</a>
-            <Link href="/dashboard" className="px-4 py-2 bg-[#EC4899] hover:bg-[#DB2777] text-white text-sm font-medium rounded-lg transition-colors duration-200 cursor-pointer">
-              Start Free
+    <AppShell publicOnly>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-base)' }}>
+        {/* Nav */}
+        <nav style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+          height: 'var(--topbar-height)',
+          borderBottom: '1px solid var(--border)',
+          background: 'rgba(255,255,255,0.9)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 15, color: 'var(--fg-primary)' }}>
+              <LogoMark />
+              <span>MPT</span>
             </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section className="relative min-h-screen flex items-center justify-center text-center px-4 pt-24 pb-16 overflow-hidden">
-        {/* Animated background orbs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#EC4899]/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#2563EB]/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
-
-        <div className="relative z-10 max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 mb-8 rounded-full border border-white/10 bg-white/5 text-xs text-white/70">
-            <span className="w-1.5 h-1.5 bg-[#EC4899] rounded-full animate-pulse" />
-            3 free videos per month · No credit card required
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold leading-tight mb-6 tracking-tight">
-            Post videos daily<br />
-            <span className="bg-gradient-to-r from-[#EC4899] to-[#2563EB] bg-clip-text text-transparent">without showing your face</span>
-          </h1>
-
-          <p className="text-base sm:text-lg md:text-xl text-white/60 mb-12 max-w-2xl mx-auto leading-relaxed">
-            AI writes the script, finds footage, and generates the voiceover.
-            Your TikTok, YouTube, and Facebook content — fully automated.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/dashboard"
-              className="px-8 py-4 bg-[#EC4899] hover:bg-[#DB2777] text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-[#EC4899]/25 cursor-pointer text-center"
-            >
-              Generate my first video free →
-            </Link>
-            <a
-              href="#how-it-works"
-              className="px-8 py-4 border border-white/20 hover:border-white/40 rounded-xl transition-all duration-200 text-white/80 hover:text-white cursor-pointer text-center"
-            >
-              See how it works
-            </a>
-          </div>
-
-          {/* Stats */}
-          <div className="flex items-center justify-center gap-8 mt-16 text-sm text-white/40">
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-[#EC4899]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              60-second generation
-            </div>
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-[#2563EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-              Commercial license
-            </div>
-            <div className="hidden sm:flex items-center gap-2">
-              <svg className="w-4 h-4 text-[#EC4899]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-              Auto-post everywhere
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Link href="#features" style={{ fontSize: 13, color: 'var(--fg-secondary)', padding: '6px 12px', borderRadius: 'var(--radius-md)', transition: 'background var(--transition-fast)' }}>Features</Link>
+              <Link href="/pricing" style={{ fontSize: 13, color: 'var(--fg-secondary)', padding: '6px 12px', borderRadius: 'var(--radius-md)', transition: 'background var(--transition-fast)' }}>Pricing</Link>
+              <Link href="/dashboard" style={{ fontSize: 13, fontWeight: 500, padding: '7px 16px', borderRadius: 'var(--radius-md)', background: 'var(--accent)', color: '#fff', transition: 'background var(--transition-fast)' }}>
+                Start free
+              </Link>
             </div>
           </div>
-        </div>
-      </section>
+        </nav>
 
-      {/* How it works */}
-      <section id="how-it-works" className="py-24 px-4 border-t border-white/5">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-[#EC4899] text-sm font-medium uppercase tracking-widest text-center mb-4">How it works</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-16">From topic to posted in 60 seconds</h2>
+        {/* Hero */}
+        <section style={{ paddingTop: 'calc(var(--topbar-height) + 80px)', paddingBottom: 100, paddingLeft: 24, paddingRight: 24, textAlign: 'center' }}>
+          <div style={{ maxWidth: 720, margin: '0 auto' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border)', background: 'var(--bg-surface)', fontSize: 13, color: 'var(--fg-secondary)', marginBottom: 32 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />
+              3 free videos per month · No credit card required
+            </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                ),
-                step: '01',
-                title: 'Enter a topic',
-                desc: 'Type any keyword or niche. Our AI researches, writes the script, and finds matching stock footage automatically.',
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                ),
-                step: '02',
-                title: 'Preview & approve',
-                desc: 'Watch the generated video. Re-generate or approve. Add your brand kit for consistent channel identity.',
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                ),
-                step: '03',
-                title: 'Auto-post everywhere',
-                desc: 'One click posts to TikTok, YouTube Shorts, and Facebook Reels simultaneously via Postiz.',
-              },
-            ].map(({ step, title, desc, icon }) => (
-              <div key={step} className="relative p-8 rounded-2xl border border-white/10 bg-white/5 hover:border-[#EC4899]/30 transition-colors duration-300 group">
-                <div className="text-[#EC4899]/40 text-xs font-mono mb-4">{step}</div>
-                <div className="w-12 h-12 rounded-xl bg-[#EC4899]/10 text-[#EC4899] flex items-center justify-center mb-5 group-hover:bg-[#EC4899]/20 transition-colors duration-300">
-                  {icon}
+            <h1 style={{ fontSize: 'clamp(36px, 6vw, 60px)', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.03em', marginBottom: 24, color: 'var(--fg-primary)' }}>
+              Post videos daily<br />
+              <span style={{ color: 'var(--accent)' }}>without showing your face</span>
+            </h1>
+
+            <p style={{ fontSize: 18, color: 'var(--fg-secondary)', maxWidth: 520, margin: '0 auto 40px', lineHeight: 1.6 }}>
+              AI writes the script, finds footage, and generates the voiceover.
+              Your TikTok, YouTube, and Facebook content — fully automated.
+            </p>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link
+                href="/dashboard"
+                style={{ padding: '12px 28px', borderRadius: 'var(--radius-lg)', background: 'var(--accent)', color: '#fff', fontSize: 15, fontWeight: 500, transition: 'background var(--transition-fast)', boxShadow: '0 2px 8px rgba(162,89,255,0.3)', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+              >
+                Generate my first video free
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </Link>
+              <Link
+                href="#how-it-works"
+                style={{ padding: '12px 28px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', color: 'var(--fg-secondary)', fontSize: 15, fontWeight: 500, transition: 'all var(--transition-fast)', background: 'var(--bg-card)' }}
+              >
+                See how it works
+              </Link>
+            </div>
+
+            {/* Stats */}
+            <div style={{ display: 'flex', gap: 32, justifyContent: 'center', marginTop: 56, flexWrap: 'wrap' }}>
+              {[
+                { icon: '⚡', text: '60-second generation' },
+                { icon: '🔒', text: 'Commercial license' },
+                { icon: '📲', text: 'Auto-post everywhere' },
+              ].map(({ icon, text }) => (
+                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--fg-tertiary)' }}>
+                  <span>{icon}</span>
+                  {text}
                 </div>
-                <h3 className="text-lg font-semibold mb-3">{title}</h3>
-                <p className="text-white/50 text-sm leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="py-24 px-4 border-t border-white/5">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-[#2563EB] text-sm font-medium uppercase tracking-widest text-center mb-4">Features</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-16">Everything you need to go viral</h2>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            {[
-              { icon: '📝', title: 'AI-generated scripts', desc: 'LLM writes engaging hooks and narration for your niche' },
-              { icon: '🎬', title: 'Stock footage', desc: 'Pixabay commercial license — use anywhere, no copyright claims' },
-              { icon: '🎙️', title: 'Natural voiceover', desc: 'Gemini-powered TTS with natural, humanlike voiceover' },
-              { icon: '💬', title: 'Auto captions', desc: 'Burned-in subtitles so viewers watch without sound' },
-              { icon: '🎵', title: 'Background music', desc: 'Royalty-free tracks matched to your video mood' },
-              { icon: '📲', title: 'Multi-platform posting', desc: 'TikTok, YouTube Shorts, Facebook Reels — all at once' },
-              { icon: '🏷️', title: 'Niche templates', desc: 'Pre-built for finance, fitness, tech, crypto, motivation' },
-              { icon: '🎨', title: 'Brand kit', desc: 'Logo intro/outro, color overlays, consistent identity' },
-            ].map(({ icon, title, desc }) => (
-              <div key={title} className="flex items-start gap-4 p-5 rounded-xl border border-white/5 bg-white/3 hover:border-[#2563EB]/30 transition-colors duration-200">
-                <span className="text-2xl mt-0.5">{icon}</span>
-                <div>
-                  <div className="font-medium mb-1 text-sm">{title}</div>
-                  <div className="text-white/45 text-sm">{desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="py-24 px-4 border-t border-white/5">
-        <div className="max-w-md mx-auto text-center">
-          <p className="text-[#EC4899] text-sm font-medium uppercase tracking-widest mb-4">Pricing</p>
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">One plan. Unlimited videos.</h2>
-          <p className="text-white/50 mb-12">Start with 3 free. Upgrade when you&apos;re ready to post daily.</p>
-
-          <div className="p-8 sm:p-10 rounded-2xl border border-[#EC4899]/30 bg-gradient-to-b from-[#EC4899]/10 to-transparent shadow-2xl shadow-[#EC4899]/10">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <span className="text-white/40 line-through text-xl font-medium">$45</span>
-              <span className="text-5xl font-bold">$30<span className="text-lg font-normal text-white/60">/mo</span></span>
+              ))}
             </div>
-            <div className="text-[#EC4899] text-sm font-medium mb-6">Unlimited videos per month</div>
-            <p className="text-white/50 text-sm mb-8 leading-relaxed">Full access to all features. Post every day without limits. Cancel anytime.</p>
-            <Link
-              href="/dashboard"
-              className="block w-full py-4 rounded-xl font-semibold bg-[#EC4899] hover:bg-[#DB2777] text-white transition-colors duration-200 cursor-pointer"
-            >
-              Start free — 3 included
-            </Link>
-            <p className="text-white/30 text-xs mt-4">Cancel anytime · No contracts · Secure via Stripe</p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 py-10 px-4 text-center">
-        <p className="text-white/30 text-sm">© 2026 FacelessVideo.ai · Built on MoneyPrinterTurbo</p>
-      </footer>
-    </div>
+        {/* How it works */}
+        <section id="how-it-works" style={{ padding: '80px 24px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
+          <div style={{ maxWidth: 960, margin: '0 auto' }}>
+            <p style={{ textAlign: 'center', fontSize: 12, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 12 }}>How it works</p>
+            <h2 style={{ textAlign: 'center', fontSize: 28, fontWeight: 600, marginBottom: 56, color: 'var(--fg-primary)' }}>
+              From topic to posted in 60 seconds
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24 }}>
+              {[
+                {
+                  step: '01',
+                  title: 'Enter a topic',
+                  desc: 'Type any keyword or niche. Our AI researches, writes the script, and finds matching stock footage automatically.',
+                  icon: <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M13 3H7C5.9 3 5 3.9 5 5V15C5 16.1 5.9 17 7 17H13C14.1 17 15 16.1 15 15V5C15 3.9 14.1 3 13 3Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 8H13M7 12H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+                },
+                {
+                  step: '02',
+                  title: 'Preview & approve',
+                  desc: 'Watch the generated video. Re-generate or approve. Add your brand kit for consistent channel identity.',
+                  icon: <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10L8 14L16 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                },
+                {
+                  step: '03',
+                  title: 'Auto-post everywhere',
+                  desc: 'One click posts to TikTok, YouTube Shorts, and Facebook Reels simultaneously via Postiz.',
+                  icon: <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="3" stroke="currentColor" strokeWidth="1.5"/><circle cx="5" cy="10" r="3" stroke="currentColor" strokeWidth="1.5"/><circle cx="15" cy="15" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M7.5 11.5L12.5 8.5M7.5 8.5L12.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+                },
+              ].map(({ step, title, desc, icon }) => (
+                <div key={step} style={{ padding: 28, background: 'var(--bg-card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                  <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--fg-tertiary)', marginBottom: 16 }}>{step}</div>
+                  <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-lg)', background: 'var(--accent-subtle)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                    {icon}
+                  </div>
+                  <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, color: 'var(--fg-primary)' }}>{title}</h3>
+                  <p style={{ fontSize: 14, color: 'var(--fg-secondary)', lineHeight: 1.6 }}>{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section id="features" style={{ padding: '80px 24px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)' }}>
+          <div style={{ maxWidth: 960, margin: '0 auto' }}>
+            <p style={{ textAlign: 'center', fontSize: 12, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 12 }}>Features</p>
+            <h2 style={{ textAlign: 'center', fontSize: 28, fontWeight: 600, marginBottom: 56, color: 'var(--fg-primary)' }}>
+              Everything you need to go viral
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+              {[
+                { icon: '📝', title: 'AI-generated scripts', desc: 'LLM writes engaging hooks and narration for your niche' },
+                { icon: '🎬', title: 'Stock footage', desc: 'Pixabay commercial license — use anywhere, no copyright claims' },
+                { icon: '🎙️', title: 'Natural voiceover', desc: 'Gemini-powered TTS with natural, humanlike voiceover' },
+                { icon: '💬', title: 'Auto captions', desc: 'Burned-in subtitles so viewers watch without sound' },
+                { icon: '🎵', title: 'Background music', desc: 'Royalty-free tracks matched to your video mood' },
+                { icon: '📲', title: 'Multi-platform posting', desc: 'TikTok, YouTube Shorts, Facebook Reels — all at once' },
+                { icon: '🏷️', title: 'Niche templates', desc: 'Pre-built for finance, fitness, tech, crypto, motivation' },
+                { icon: '🎨', title: 'Brand kit', desc: 'Logo intro/outro, color overlays, consistent identity' },
+              ].map(({ icon, title, desc }) => (
+                <div key={title} style={{ display: 'flex', gap: 14, padding: '16px 18px', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)' }}>
+                  <span style={{ fontSize: 22, lineHeight: 1.2 }}>{icon}</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-primary)', marginBottom: 2 }}>{title}</div>
+                    <div style={{ fontSize: 12, color: 'var(--fg-tertiary)', lineHeight: 1.5 }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing teaser */}
+        <section style={{ padding: '80px 24px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border)' }}>
+          <div style={{ maxWidth: 500, margin: '0 auto', textAlign: 'center' }}>
+            <h2 style={{ fontSize: 28, fontWeight: 600, marginBottom: 12, color: 'var(--fg-primary)' }}>One plan. Unlimited videos.</h2>
+            <p style={{ fontSize: 15, color: 'var(--fg-secondary)', marginBottom: 32 }}>Start with 3 free. Upgrade when you&apos;re ready to post daily.</p>
+            <div style={{ padding: 32, background: 'var(--bg-card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 40, fontWeight: 600, color: 'var(--fg-primary)' }}>$30</span>
+                <span style={{ fontSize: 15, color: 'var(--fg-tertiary)' }}>/mo</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--fg-tertiary)', marginBottom: 24 }}>Unlimited videos per month</p>
+              <Link href="/dashboard" style={{ display: 'block', padding: '12px 24px', borderRadius: 'var(--radius-lg)', background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 500, transition: 'background var(--transition-fast)' }}>
+                Start free — 3 included
+              </Link>
+              <p style={{ fontSize: 12, color: 'var(--fg-tertiary)', marginTop: 16 }}>Cancel anytime · No contracts · Secure via Stripe</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer style={{ padding: '32px 24px', borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: 'var(--fg-tertiary)' }}>© 2026 MPT SaaS · Built on MoneyPrinterTurbo</p>
+        </footer>
+      </div>
+    </AppShell>
+  );
+}
+
+function LogoMark() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="var(--accent)"/>
+      <path d="M7 8L12 12L17 8M7 16L12 12L17 16" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
   );
 }

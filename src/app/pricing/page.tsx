@@ -1,81 +1,102 @@
 import Link from 'next/link';
+import AppShell from '@/components/AppShell';
 
 export const metadata = {
-  title: 'Pricing — FacelessVideo.ai',
+  title: 'Pricing — MPT SaaS',
 };
+
+const FEATURES = [
+  'Unlimited AI-generated videos',
+  'AI script writing',
+  'Stock footage (Pixabay)',
+  'Natural TTS voiceover',
+  'Auto captions & subtitles',
+  'Background music',
+  'Multi-platform posting (TikTok, YouTube, Facebook)',
+  'Brand kit customization',
+];
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-[#0F172A] text-white">
-      {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0F172A]/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
-          <Link href="/" className="text-lg font-bold tracking-tight">
-            <span className="text-[#EC4899]">Faceless</span>Video.ai
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="px-4 py-2 bg-[#EC4899] hover:bg-[#DB2777] text-white text-sm font-medium rounded-lg transition-colors duration-200 cursor-pointer">
-              Start Free
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <AppShell publicOnly>
+      <div style={{ minHeight: 'calc(100vh - var(--topbar-height))', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 24px' }}>
+        <div style={{ maxWidth: 480, width: '100%', textAlign: 'center' }}>
 
-      <div className="pt-32 pb-24 px-4">
-        <div className="max-w-md mx-auto text-center">
-          <p className="text-[#2563EB] text-sm font-medium uppercase tracking-widest mb-4">Pricing</p>
-          <h1 className="text-3xl sm:text-5xl font-bold mb-4 leading-tight">One plan.<br />Unlimited videos.</h1>
-          <p className="text-white/50 mb-16">Start with 3 free. No credit card required.</p>
+          {/* Header */}
+          <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 12 }}>Pricing</p>
+          <h1 style={{ fontSize: 32, fontWeight: 600, color: 'var(--fg-primary)', marginBottom: 12, letterSpacing: '-0.02em' }}>
+            One plan. Unlimited videos.
+          </h1>
+          <p style={{ fontSize: 15, color: 'var(--fg-secondary)', marginBottom: 48 }}>
+            Start with 3 free. No credit card required.
+          </p>
 
-          {/* Single plan */}
-          <div className="p-8 sm:p-10 rounded-2xl border border-[#EC4899]/30 bg-gradient-to-b from-[#EC4899]/10 to-transparent shadow-2xl shadow-[#EC4899]/10 text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full border border-[#EC4899]/20 bg-[#EC4899]/5 text-xs text-[#EC4899]">
-              Best value
+          {/* Card */}
+          <div style={{
+            padding: 36,
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-xl)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-lg)',
+            textAlign: 'left',
+          }}>
+            {/* Badge */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--accent-subtle)', color: 'var(--accent)', fontSize: 12, fontWeight: 500 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} />
+                Best value
+              </div>
             </div>
 
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <span className="text-white/40 line-through text-xl font-medium">$45</span>
-              <span className="text-5xl font-bold">$30<span className="text-lg font-normal text-white/60">/mo</span></span>
+            {/* Price */}
+            <div style={{ textAlign: 'center', marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
+                <span style={{ fontSize: 48, fontWeight: 600, color: 'var(--fg-primary)', letterSpacing: '-0.02em' }}>$30</span>
+                <span style={{ fontSize: 16, color: 'var(--fg-tertiary)' }}>/mo</span>
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--fg-tertiary)', marginTop: 4 }}>Unlimited videos per month</div>
             </div>
-            <div className="text-[#EC4899] text-sm font-medium mb-8">Unlimited videos per month</div>
 
-            <ul className="text-left space-y-3 mb-8">
-              {[
-                'Unlimited AI-generated videos',
-                'AI script writing',
-                'Stock footage included',
-                'Natural voiceover',
-                'Auto captions & subtitles',
-                'Background music',
-                'Multi-platform posting (TikTok, YouTube, Facebook)',
-                'Brand kit customization',
-              ].map((feature) => (
-                <li key={feature} className="flex items-center gap-3 text-sm text-white/70">
-                  <svg className="w-4 h-4 text-[#EC4899] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            {/* CTA */}
+            <div style={{ marginBottom: 28 }}>
+              <Link
+                href="/dashboard"
+                style={{ display: 'block', width: '100%', padding: '13px 20px', borderRadius: 'var(--radius-lg)', background: 'var(--accent)', color: '#fff', fontSize: 15, fontWeight: 500, transition: 'background var(--transition-fast)', textAlign: 'center' }}
+              >
+                Start free — 3 included
+              </Link>
+              <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--fg-tertiary)', marginTop: 12 }}>
+                Cancel anytime · No contracts · Secure via Stripe
+              </p>
+            </div>
+
+            {/* Features */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {FEATURES.map((feature) => (
+                <div key={feature} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--fg-secondary)' }}>
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--success-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M1.5 5L3.8 7.5L8.5 2.5" stroke="var(--success)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
                   {feature}
-                </li>
+                </div>
               ))}
-            </ul>
-
-            <Link
-              href="/dashboard"
-              className="block w-full py-4 rounded-xl font-semibold bg-[#EC4899] hover:bg-[#DB2777] text-white transition-colors duration-200 cursor-pointer mb-4"
-            >
-              Start free — 3 included
-            </Link>
-            <p className="text-white/30 text-xs">Cancel anytime · No contracts · Secure via Stripe</p>
+            </div>
           </div>
 
-          {/* Free tier callout */}
-          <div className="mt-6 p-6 rounded-xl border border-white/10 bg-white/3">
-            <p className="text-white/40 text-sm mb-1">Just trying?</p>
-            <p className="text-white/60 text-sm">Start free with 3 videos — no card needed.</p>
-            <Link href="/dashboard" className="inline-block mt-3 text-sm text-[#EC4899] hover:text-[#DB2777] transition-colors duration-200 cursor-pointer">
+          {/* Free tier */}
+          <div style={{ marginTop: 16, padding: 24, background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)' }}>
+            <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--fg-primary)', marginBottom: 4 }}>Just trying?</p>
+            <p style={{ fontSize: 13, color: 'var(--fg-secondary)', marginBottom: 16 }}>
+              Start free with 3 videos — no credit card needed.
+            </p>
+            <Link href="/dashboard" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 500, transition: 'opacity var(--transition-fast)' }}>
               Go to dashboard →
             </Link>
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }
