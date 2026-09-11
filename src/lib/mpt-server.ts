@@ -12,7 +12,8 @@ async function mptFetch(path: string, init?: RequestInit): Promise<Response> {
   const headers = new Headers(init?.headers);
   if (MPT_KEY) headers.set('x-api-key', MPT_KEY);
   if (init?.body) headers.set('Content-Type', 'application/json');
-  return fetch(`${MPT_URL}${path}`, { ...init, headers });
+  // Hard timeout so a slow/hung MPT never hangs the serverless function past 25s.
+  return fetch(`${MPT_URL}${path}`, { ...init, headers, signal: init?.signal ?? AbortSignal.timeout(25000) });
 }
 
 /** Submit a generation job on the server (with the API key). */
