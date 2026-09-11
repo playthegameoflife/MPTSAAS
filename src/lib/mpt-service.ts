@@ -91,11 +91,23 @@ function getBaseUrl(): string {
  * We only handle: scheduling, storage, billing.
  */
 export async function submitVideoJob(params: VideoParams): Promise<{ task_id: string }> {
+  // Guard: MPT hard-fails the audio stage if voice_name is empty
+  // (Invalid voice ''), and it does NOT fall back to its config default.
+  // Never allow an empty voice through — default to gemini:Zephyr.
+  const safeParams: VideoParams = { ...params };
+  if (!safeParams.voice_name || !safeParams.voice_name.trim()) {
+    safeParams.voice_name = DEFAULT_VOICE;
+  }
+  // Also guard video_subject (required for script generation).
+  if (!safeParams.video_subject.trim()) {
+    safeParams.video_subject = 'Untitled video';
+  }
+
   const url = `${getBaseUrl()}/videos`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
+    body: JSON.stringify(safeParams),
   });
 
   if (!res.ok) {
