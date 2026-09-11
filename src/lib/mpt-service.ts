@@ -160,17 +160,23 @@ export async function getVideoTask(taskId: string): Promise<VideoTask> {
   // MPT returns an absolute server path, e.g.
   //   /root/MoneyPrinterTurbo/storage/tasks/<id>/final-1.mp4
   // The raw filesystem path is NOT servable via baseUrl + path (404).
-  // MPT exposes /api/v1/stream/<file_path> which serves the file correctly.
-  // baseUrl may or may not include the /api/v1 prefix, so normalize it.
+  // MPT exposes /api/v1/stream/{file_path} which serves the file correctly.
+  // Caveat: MPT's {file_path} route only preserves a leading slash in the
+  // path when the URL uses a literal double slash (/stream//root/...) or a
+  // fully URL-encoded path. Single-slash /stream/root/... returns
+  // "invalid file path". Safest: URL-encode the whole path (verified 206).
   if (task.videos?.length && !task.video_url) {
     const serverPath = task.videos[0];
-    const fp = serverPath.startsWith('/') ? serverPath : `/${serverPath}`;
     // Normalize: strip trailing slash, then ensure /api/v1 is present once.
     let root = baseUrl.replace(/\/+$/, '');
     if (!/\/api\/v1\/?$/.test(root)) {
       root = `${root}/api/v1`;
     }
-    task.video_url = `${root}/stream${fp}`;
+    // encodeURIComponent encodes "/" as %2F, which MPT's {file_path} route
+    // needs to capture the leading slash correctly (single-slash form
+    // returns "invalid file path"). This verified form streams (206).
+    const encodedPath = encodeURIComponent(serverPath);
+    task.video_url = `${root}/stream/${encodedPath}`;
   }
 
   return task;
