@@ -1,49 +1,36 @@
 import { NextResponse } from 'next/server';
 import { verifyFirebaseToken } from '@/lib/verify-token';
-import { adminFirestore } from '@/lib/firebase-admin';
 
-/**
- * Diagnostic: time each step of the generate pipeline separately to find the hang.
- * Requires a valid token. Returns timing per step, never hangs silently.
- */
+/** Test outbound reachability to MPT from Vercel's serverless network. */
 export async function GET(request: Request) {
-  const timings: Record<string, string | number | boolean> = {};
-  const start = Date.now();
+  const out: Record<string, unknown> = {};
   const authHeader = request.headers.get('authorization') ?? '';
   const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-
   if (!idToken) return NextResponse.json({ error: 'no token' }, { status: 401 });
-  timings.token_present = true;
-
-  // 1. Verify token
-  const t1 = Date.now();
-  let uid: string | null = null;
   try {
-    uid = (await verifyFirebaseToken(idToken)).uid;
-    timings.verify_ms = Date.now() - t1;
-  } catch (e) {
-    return NextResponse.json({ error: 'auth failed', msg: (e as Error).message, verify_ms: Date.now() - t1 }, { status: 200 });
-  }
-  timings.uid = uid;
+    await verifyFirebaseToken(idToken);
+  } catch { return NextResponse.json({ error: 'auth' }); }
 
-  // 2. Firestore read (the credit check writes; just do a get)
-  const t2 = Date.now();
+  // Test MPT HTTP reachability with a short timeout
   try {
-    const db = adminFirestore();
-    timings.firestore_import_ms = Date.now() - t2;
-    const t2b = Date.now();
-    const snap = await db.collection('users').doc(uid).get();
-    timings.firestore_get_ms = Date.now() - t2b;
-    timings.doc_exists = snap.exists;
+    const t0 = Date.now();
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 10000);
+    const res = await fetch('http://76.13.30.74:8080/api/v1/tasks', { signal: ctrl.signal });
+    clearTimeout(to);
+    out.mpt_http = { status: res.status, time_ms: Date.now() - t0 };
   } catch (e) {
-    timings.firestore_err = (e as Error).message;
+    out.mpt_http_err = (e as Error).name + ': ' + (e as Error).message;
   }
 
-  timings.total_ms = Date.now() - start;
-  return NextResponse.json({ ok: true, timings });
-}
+  // Test MPT HTTPS? none. Test a known public HTTPS endpoint for contrast
+  try {
+    const t0 = Date.now();
+    const res = await fetch('https://www.google.com', { signal: AbortSignal.timeout(8000) });
+    out.google = { status: res.status, time_ms: Date.now() - t0 };
+  } catch (e) {
+    out.google_err = (e as Error).message;
+  }
 
-// Also test POST does nothing heavy
-export async function POST(request: Request) {
-  return GET(request);
+  return NextResponse.json({ ok: true, out });
 }
