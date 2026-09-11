@@ -144,10 +144,21 @@ export async function getVideoTask(taskId: string): Promise<VideoTask> {
     task.error = (data.data ?? data).error;
   }
 
-  // Construct full video URLs from MPT's relative paths
+  // Construct full video URLs from MPT's relative paths.
+  // MPT returns an absolute server path, e.g.
+  //   /root/MoneyPrinterTurbo/storage/tasks/<id>/final-1.mp4
+  // The raw filesystem path is NOT servable via baseUrl + path (404).
+  // MPT exposes /api/v1/stream/<file_path> which serves the file correctly.
+  // baseUrl may or may not include the /api/v1 prefix, so normalize it.
   if (task.videos?.length && !task.video_url) {
-    const relativePath = task.videos[0];
-    task.video_url = `${baseUrl}${relativePath}`;
+    const serverPath = task.videos[0];
+    const fp = serverPath.startsWith('/') ? serverPath : `/${serverPath}`;
+    // Normalize: strip trailing slash, then ensure /api/v1 is present once.
+    let root = baseUrl.replace(/\/+$/, '');
+    if (!/\/api\/v1\/?$/.test(root)) {
+      root = `${root}/api/v1`;
+    }
+    task.video_url = `${root}/stream${fp}`;
   }
 
   return task;
