@@ -295,8 +295,27 @@ export default function DashboardPage() {
           if (!task.video_url) task.video_url = task.videos![0];
           setGenStatus('completed');
           setProgressPct(100);
-          setVideoUrl(task.video_url);
-          if (docId) updateVideoJob({ docId, status: 'completed', videoUrl: task.video_url }).catch(console.warn);
+          const mptUrl = task.video_url;
+          // Durably store the finished video in Firebase Storage, then persist
+          // the permanent URL (fall back to the MPT URL if upload fails).
+          setVideoUrl(mptUrl); // show immediately; swap to storage URL if saved
+          if (docId) {
+            const { uploadVideoToStorage } = await import('@/lib/storage');
+            const { auth } = await import('@/lib/firebase');
+            const { getAuth } = await import('firebase/auth');
+            const cur = getAuth(auth.app).currentUser;
+            if (cur) {
+              const storedUrl = await uploadVideoToStorage(cur.uid, id, mptUrl);
+              if (storedUrl) {
+                setVideoUrl(storedUrl);
+                updateVideoJob({ docId, status: 'completed', videoUrl: storedUrl }).catch(console.warn);
+              } else {
+                updateVideoJob({ docId, status: 'completed', videoUrl: mptUrl }).catch(console.warn);
+              }
+            } else {
+              updateVideoJob({ docId, status: 'completed', videoUrl: mptUrl }).catch(console.warn);
+            }
+          }
           setLoading(false);
           return;
         }
