@@ -1,0 +1,12 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Public playback for finished videos (streamed via <video> / alt=media URL)
+    // Server (admin SDK) writes with elevated privileges; also allow owners to upload their own.
+    match /videos/{userId}/{fileName} {
+      allow read: if true;                                        // public read for playback/sharing
+      allow write: if request.auth != null
+                    && request.auth.uid == userId;                // owner-only writes
+    }
+  }
+}
