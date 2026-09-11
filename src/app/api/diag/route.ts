@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server';
-// Static imports — SAME as /api/generate to reproduce its load behavior
+// Exact same static imports as /api/generate:
 import { getAuth } from 'firebase-admin/auth';
 import { getAdminApp } from '@/lib/firebase-admin';
+import { submitVideoJobServer } from '@/lib/mpt-server';
 
-/** Diagnostic: statically import + init the exact modules /api/generate uses. */
 export async function GET() {
+  const results: Record<string, string> = {};
   try {
+    results.getAuth_load = 'ok';
+    results.submitVideoJobServer_type = typeof submitVideoJobServer;
     const app = getAdminApp();
-    return NextResponse.json({ ok: true, init: 'success', project: app.options.projectId, storageBucket: app.options.storageBucket });
+    results.admin_init = 'ok';
+    results.project = String((app.options as any).projectId ?? '?');
+    return NextResponse.json({ ok: true, results });
   } catch (e) {
-    return NextResponse.json({ ok: false, init: 'fail', error: (e as Error).message, stack: (e as Error).stack?.slice(0, 800) }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message, stack: (e as Error).stack?.slice(0, 600) }, { status: 500 });
   }
 }
