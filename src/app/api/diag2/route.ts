@@ -7,7 +7,7 @@ import { adminFirestore } from '@/lib/firebase-admin';
  * Requires a valid token. Returns timing per step, never hangs silently.
  */
 export async function GET(request: Request) {
-  const timings: Record<string, string | number> = {};
+  const timings: Record<string, string | number | boolean> = {};
   const start = Date.now();
   const authHeader = request.headers.get('authorization') ?? '';
   const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
