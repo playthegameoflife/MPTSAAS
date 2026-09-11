@@ -54,6 +54,8 @@ export interface VideoTask {
   videos?: string[];           // MPT relative paths, e.g. ["/tasks/.../final-1.mp4"]
   combined_videos?: string[];
   video_url?: string;          // constructed full URL (for backward compat)
+  progress?: number;           // real MPT progress 0-100 (from TaskStatusData.progress)
+  failed_stage?: string;       // which stage failed, e.g. "audio" (from failed_stage)
   created_at?: string;
   video_subject?: string;
   error?: string;
@@ -121,6 +123,26 @@ export async function getVideoTask(taskId: string): Promise<VideoTask> {
 
   const data = await res.json();
   const task: VideoTask = data.data ?? data;
+
+  // Normalize MPT's wire format -> our VideoTask shape.
+  // MPT sends `state` as an int and `progress` as 0-100:
+  //   state: -1 = failed, 0 = queued, 1 = processing, 2 = completed
+  if (typeof task.status !== 'string') {
+    const raw = data.data ?? data;
+    const st = raw.state as number;
+    task.status = st === 2 ? 'completed' : st === -1 ? 'failed' : st === 1 ? 'processing' : 'queued';
+  }
+  // Pull real progress + failed_stage through from the wire payload
+  if (typeof task.progress !== 'number') {
+    const p = (data.data ?? data).progress;
+    task.progress = typeof p === 'number' ? p : undefined;
+  }
+  if (!task.failed_stage) {
+    task.failed_stage = (data.data ?? data).failed_stage;
+  }
+  if (!task.error) {
+    task.error = (data.data ?? data).error;
+  }
 
   // Construct full video URLs from MPT's relative paths
   if (task.videos?.length && !task.video_url) {

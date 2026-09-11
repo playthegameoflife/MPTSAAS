@@ -102,6 +102,22 @@ function getVisibleSteps(currentStatus: GenerationStep): { step: typeof STEPS[0]
   }));
 }
 
+/**
+ * Map MPT's real progress (0-100) onto the visible step order.
+ * We don't know MPT's per-stage split, so we divide the timeline evenly across
+ * the 6 steps. The progress bar itself uses the raw real value.
+ */
+function stepIndexForProgress(pct: number): number {
+  if (pct >= 100) return STEPS.length;
+  const width = 100 / STEPS.length;
+  return Math.min(STEPS.length - 1, Math.max(0, Math.floor(pct / width)));
+}
+
+function stepKeyForProgress(pct: number): GenerationStep {
+  const idx = stepIndexForProgress(pct);
+  return idx >= STEPS.length ? 'assembling_video' : STEPS[idx].key;
+}
+
 // ─── Progress Step Component ─────────────────────────────────────────────────
 
 function StepItem({ step, state }: { step: typeof STEPS[0]; state: 'done' | 'active' | 'pending' }) {
@@ -197,6 +213,7 @@ export default function DashboardPage() {
   const [taskId, setTaskId] = React.useState<string | null>(null);
   const [firestoreDocId, setFirestoreDocId] = React.useState<string | null>(null);
   const [genStatus, setGenStatus] = React.useState<GenerationStep>('queued');
+  const [progressPct, setProgressPct] = React.useState(0);
   const [videoUrl, setVideoUrl] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -206,6 +223,7 @@ export default function DashboardPage() {
     setVideoUrl(null);
     setLoading(true);
     setGenStatus('queued');
+    setProgressPct(0);
 
     const params: VideoParams = {
       video_subject: topic,
@@ -260,6 +278,7 @@ export default function DashboardPage() {
   }
 
   async function pollTask(id: string, docId: string | null) {
+    // Timer-only fallback (used only if MPT never reports a progress number).
     const advance = () => {
       setGenStatus(prev => {
         const order: GenerationStep[] = ['queued', 'writing_script', 'finding_footage', 'generating_voiceover', 'adding_subtitles', 'adding_music', 'assembling_video'];
@@ -271,9 +290,11 @@ export default function DashboardPage() {
     const poll = async () => {
       try {
         const task = await getVideoTask(id);
-        // Advance UI step based on real status when available
-        if (task.status === 'completed' && task.video_url) {
+        // Terminal states — real, driven by MPT
+        if (task.status === 'completed' && (task.video_url || task.videos?.length)) {
+          if (!task.video_url) task.video_url = task.videos![0];
           setGenStatus('completed');
+          setProgressPct(100);
           setVideoUrl(task.video_url);
           if (docId) updateVideoJob({ docId, status: 'completed', videoUrl: task.video_url }).catch(console.warn);
           setLoading(false);
@@ -281,13 +302,18 @@ export default function DashboardPage() {
         }
         if (task.status === 'failed') {
           setGenStatus('failed');
-          setError(task.error ?? 'Video generation failed');
+          setError(task.error ?? (task.failed_stage ? `Failed during ${task.failed_stage}` : 'Video generation failed'));
           if (docId) updateVideoJob({ docId, status: 'failed', error: task.error }).catch(console.warn);
           setLoading(false);
           return;
         }
-        // Progress UI steps
-        advance();
+        // Live progress when MPT reports it (real 0-100), else keep timer fallback
+        if (typeof task.progress === 'number' && task.progress >= 0) {
+          setProgressPct(task.progress);
+          setGenStatus(stepKeyForProgress(task.progress));
+        } else {
+          advance();
+        }
         setTimeout(poll, 3500);
       } catch {
         setTimeout(poll, 5000);
@@ -514,6 +540,14 @@ export default function DashboardPage() {
               <div style={{ padding: 24, background: 'var(--bg-card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)' }}>
                 <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-primary)', marginBottom: 4 }}>Generating your video</h3>
                 <p style={{ fontSize: 12, color: 'var(--fg-tertiary)', marginBottom: 24 }}>This takes about 60 seconds</p>
+
+                {/* Real progress bar driven by MPT progress */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ height: 8, borderRadius: 99, background: 'var(--bg-overlay)', overflow: 'hidden' }}>
+                    <div style={{ height: 8, width: `${progressPct}%`, background: 'var(--accent)', borderRadius: 99, transition: 'width 1s linear' }} />
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 11, color: 'var(--fg-tertiary)', fontWeight: 500 }}>{Math.min(99, Math.max(0, Math.round(progressPct)))}%</div>
+                </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {visibleSteps.map(({ step, state }) => (
