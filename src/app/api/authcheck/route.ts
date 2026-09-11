@@ -1,24 +1,25 @@
 import { NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
 import { getAdminApp } from '@/lib/firebase-admin';
+// Try getFirestore (storage path) vs getAuth separately
 
-/** Isolate: does getAuth().verifyIdToken crash the lambda, or is it the extra modules/dynamic imports? */
 export async function GET() {
+  const results: Record<string, string> = {};
   try {
-    const result = await getAuth(getAdminApp()).verifyIdToken('definitely-invalid');
-    return NextResponse.json({ ok: true, uid: result.uid });
+    // Test 1: just import firestore module and init
+    const fs = await import('firebase-admin/firestore');
+    const fstore = fs.getFirestore(getAdminApp());
+    results.firestore_getFirestore = 'ok:' + typeof fstore.collection;
   } catch (e) {
-    const err = e as Error & { code?: string };
-    return NextResponse.json({ ok: 'caught', rejected: true, error: err.code ?? err.message }, { status: 200 });
+    results.firestore_err = (e as Error).message;
   }
-}
-
-export async function POST() {
   try {
-    const result = await getAuth(getAdminApp()).verifyIdToken('definitely-invalid');
-    return NextResponse.json({ ok: true, uid: result.uid });
+    // Test 2: import auth module and call getAuth
+    const auth = await import('firebase-admin/auth');
+    results.auth_getAuth = typeof auth.getAuth;
+    const a = auth.getAuth(getAdminApp());
+    results.auth_getAuth_called = 'ok:' + typeof a.verifyIdToken;
   } catch (e) {
-    const err = e as Error & { code?: string };
-    return NextResponse.json({ ok: 'caught', rejected: true, error: err.code ?? err.message });
+    results.auth_err = (e as Error).message;
   }
+  return NextResponse.json({ ok: true, results });
 }
