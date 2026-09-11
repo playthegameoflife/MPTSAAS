@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getAdminApp } from '@/lib/firebase-admin';
+import { verifyFirebaseToken, getAdminApp } from '@/lib/verify-token';
 import { submitVideoJobServer } from '@/lib/mpt-server';
 
 /**
@@ -19,7 +18,7 @@ export async function POST(request: Request) {
   }
   let uid: string;
   try {
-    const decoded = await getAuth(getAdminApp()).verifyIdToken(idToken);
+    const decoded = await verifyFirebaseToken(idToken);
     uid = decoded.uid;
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

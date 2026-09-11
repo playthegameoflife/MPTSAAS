@@ -1,25 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getAdminApp } from '@/lib/firebase-admin';
-// Try getFirestore (storage path) vs getAuth separately
+import { verifyFirebaseToken } from '@/lib/verify-token';
 
+/** Isolate: does the jose-based token verifier load + run cleanly on Vercel? */
 export async function GET() {
-  const results: Record<string, string> = {};
   try {
-    // Test 1: just import firestore module and init
-    const fs = await import('firebase-admin/firestore');
-    const fstore = fs.getFirestore(getAdminApp());
-    results.firestore_getFirestore = 'ok:' + typeof fstore.collection;
+    // verifyFirebaseToken with a garbage token should throw (rejected), NOT crash the lambda
+    await verifyFirebaseToken('garbage-token');
+    return NextResponse.json({ ok: true, unexpected: 'token accepted?' });
   } catch (e) {
-    results.firestore_err = (e as Error).message;
+    const err = e as Error;
+    const code = (err as any).code;
+    return NextResponse.json({ ok: 'jose-verifier-loaded', rejected: true, module: typeof verifyFirebaseToken, code: code ?? null, msg: err.message?.slice(0, 120) });
   }
-  try {
-    // Test 2: import auth module and call getAuth
-    const auth = await import('firebase-admin/auth');
-    results.auth_getAuth = typeof auth.getAuth;
-    const a = auth.getAuth(getAdminApp());
-    results.auth_getAuth_called = 'ok:' + typeof a.verifyIdToken;
-  } catch (e) {
-    results.auth_err = (e as Error).message;
-  }
-  return NextResponse.json({ ok: true, results });
 }
