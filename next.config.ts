@@ -1,10 +1,19 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // firebase-admin uses dynamic requires of native/optional deps (grpc etc.),
-  // which break when webpack/turbopack bundles them into a serverless function.
-  // Keep it external so Node resolves it at runtime like a normal dependency.
-  serverExternalPackages: ["firebase-admin"],
+  // firebase-admin (+ its transitive ESM deps jose/jwks-rsa used by the Auth
+  // module for ID-token verification) breaks when bundled by webpack/turbopack
+  // into a serverless function. Keep them external so Node resolves at runtime.
+  serverExternalPackages: [
+    "firebase-admin",
+    "jose",
+    "jwks-rsa",
+    "@google-cloud/storage",
+    "@google-cloud/firestore",
+    "google-auth-library",
+    "gcp-metadata",
+    "gaxios",
+  ],
 };
 
 export default nextConfig;
