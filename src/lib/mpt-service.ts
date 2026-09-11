@@ -90,33 +90,50 @@ function getBaseUrl(): string {
  * MPT handles: script generation, stock footage, TTS, subtitles, BGM, FFmpeg assembly.
  * We only handle: scheduling, storage, billing.
  */
+/** Get the current user's Firebase ID token for authenticated API calls. */
+async function getIdToken(): Promise<string | null> {
+  try {
+    const { auth } = await import('@/lib/firebase');
+    const user = auth.currentUser;
+    if (!user) return null;
+    return await user.getIdToken();
+  } catch {
+    return null;
+  }
+}
+
 export async function submitVideoJob(params: VideoParams): Promise<{ task_id: string }> {
   // Guard: MPT hard-fails the audio stage if voice_name is empty
   // (Invalid voice ''), and it does NOT fall back to its config default.
-  // Never allow an empty voice through — default to gemini:Zephyr.
   const safeParams: VideoParams = { ...params };
   if (!safeParams.voice_name || !safeParams.voice_name.trim()) {
     safeParams.voice_name = DEFAULT_VOICE;
   }
-  // Also guard video_subject (required for script generation).
   if (!safeParams.video_subject.trim()) {
     safeParams.video_subject = 'Untitled video';
   }
 
-  const url = `${getBaseUrl()}/videos`;
-  const res = await fetch(url, {
+  // Route through the server (/api/generate) so the MPT key stays server-side
+  const token = await getIdToken();
+  const res = await fetch('/api/generate', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify(safeParams),
   });
 
+  if (res.status === 402) {
+    const { error } = await res.json();
+    throw new Error(error ?? 'Free monthly limit reached. Upgrade to Pro for unlimited videos.');
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`[MPT Service] submitVideoJob failed: ${res.status} ${body}`);
+    throw new Error(`[MPT Service] submit failed: ${res.status} ${body}`);
   }
-
   const data = await res.json();
-  return { task_id: data.data?.task_id ?? data.task_id };
+  return { task_id: data.task_id ?? data.task_id };
 }
 
 /**
@@ -124,9 +141,12 @@ export async function submitVideoJob(params: VideoParams): Promise<{ task_id: st
  * We never inspect MPT internals — just the status + output URL.
  */
 export async function getVideoTask(taskId: string): Promise<VideoTask> {
-  const baseUrl = getBaseUrl();
-  const url = `${baseUrl}/tasks/${taskId}`;
-  const res = await fetch(url);
+  // Route through the server (/api/tasks/[id]) which authenticates, polls MPT,
+  // stores the finished video in the USER's Firebase Storage, and cleans up the VM copy.
+  const token = await getIdToken();
+  const res = await fetch(`/api/tasks/${taskId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
@@ -134,51 +154,10 @@ export async function getVideoTask(taskId: string): Promise<VideoTask> {
   }
 
   const data = await res.json();
-  const task: VideoTask = data.data ?? data;
-
-  // Normalize MPT's wire format -> our VideoTask shape.
-  // MPT sends `state` as an int and `progress` as 0-100:
-  //   state: -1 = failed, 0 = queued, 1 = processing, 2 = completed
-  if (typeof task.status !== 'string') {
-    const raw = data.data ?? data;
-    const st = raw.state as number;
-    task.status = st === 2 ? 'completed' : st === -1 ? 'failed' : st === 1 ? 'processing' : 'queued';
-  }
-  // Pull real progress + failed_stage through from the wire payload
-  if (typeof task.progress !== 'number') {
-    const p = (data.data ?? data).progress;
-    task.progress = typeof p === 'number' ? p : undefined;
-  }
-  if (!task.failed_stage) {
-    task.failed_stage = (data.data ?? data).failed_stage;
-  }
-  if (!task.error) {
-    task.error = (data.data ?? data).error;
-  }
-
-  // Construct full video URLs from MPT's relative paths.
-  // MPT returns an absolute server path, e.g.
-  //   /root/MoneyPrinterTurbo/storage/tasks/<id>/final-1.mp4
-  // The raw filesystem path is NOT servable via baseUrl + path (404).
-  // MPT exposes /api/v1/stream/{file_path} which serves the file correctly.
-  // Caveat: MPT's {file_path} route only preserves a leading slash in the
-  // path when the URL uses a literal double slash (/stream//root/...) or a
-  // fully URL-encoded path. Single-slash /stream/root/... returns
-  // "invalid file path". Safest: URL-encode the whole path (verified 206).
-  if (task.videos?.length && !task.video_url) {
-    const serverPath = task.videos[0];
-    // Normalize: strip trailing slash, then ensure /api/v1 is present once.
-    let root = baseUrl.replace(/\/+$/, '');
-    if (!/\/api\/v1\/?$/.test(root)) {
-      root = `${root}/api/v1`;
-    }
-    // encodeURIComponent encodes "/" as %2F, which MPT's {file_path} route
-    // needs to capture the leading slash correctly (single-slash form
-    // returns "invalid file path"). This verified form streams (206).
-    const encodedPath = encodeURIComponent(serverPath);
-    task.video_url = `${root}/stream/${encodedPath}`;
-  }
-
+  const task: VideoTask = { task_id: taskId, status: data.status ?? 'processing' };
+  if (typeof data.progress === 'number') task.progress = data.progress;
+  if (typeof data.video_url === 'string') task.video_url = data.video_url;
+  if (typeof data.error === 'string') task.error = data.error;
   return task;
 }
 

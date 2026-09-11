@@ -291,37 +291,19 @@ export default function DashboardPage() {
       try {
         const task = await getVideoTask(id);
         // Terminal states — real, driven by MPT
-        if (task.status === 'completed' && (task.video_url || task.videos?.length)) {
-          if (!task.video_url) task.video_url = task.videos![0];
+        if (task.status === 'completed' && task.video_url) {
           setGenStatus('completed');
           setProgressPct(100);
-          const mptUrl = task.video_url;
-          // Durably store the finished video in Firebase Storage, then persist
-          // the permanent URL (fall back to the MPT URL if upload fails).
-          setVideoUrl(mptUrl); // show immediately; swap to storage URL if saved
-          if (docId) {
-            const { uploadVideoToStorage } = await import('@/lib/storage');
-            const { auth } = await import('@/lib/firebase');
-            const { getAuth } = await import('firebase/auth');
-            const cur = getAuth(auth.app).currentUser;
-            if (cur) {
-              const storedUrl = await uploadVideoToStorage(cur.uid, id, mptUrl);
-              if (storedUrl) {
-                setVideoUrl(storedUrl);
-                updateVideoJob({ docId, status: 'completed', videoUrl: storedUrl }).catch(console.warn);
-              } else {
-                updateVideoJob({ docId, status: 'completed', videoUrl: mptUrl }).catch(console.warn);
-              }
-            } else {
-              updateVideoJob({ docId, status: 'completed', videoUrl: mptUrl }).catch(console.warn);
-            }
-          }
+          // Server (/api/tasks/[id]) already stored the video in the USER's
+          // Firebase Storage and cleaned up the VM copy. video_url is the durable URL.
+          setVideoUrl(task.video_url);
+          if (docId) updateVideoJob({ docId, status: 'completed', videoUrl: task.video_url }).catch(console.warn);
           setLoading(false);
           return;
         }
         if (task.status === 'failed') {
           setGenStatus('failed');
-          setError(task.error ?? (task.failed_stage ? `Failed during ${task.failed_stage}` : 'Video generation failed'));
+          setError(task.error ?? 'Video generation failed');
           if (docId) updateVideoJob({ docId, status: 'failed', error: task.error }).catch(console.warn);
           setLoading(false);
           return;
